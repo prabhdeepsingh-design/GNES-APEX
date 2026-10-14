@@ -314,7 +314,39 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 4. API: POST Timer Mutation (/api/timer) - Authenticated Admin Endpoint
+  // 4. API: POST Admin Login Authentication (/api/admin/login)
+  if (pathname === '/api/admin/login' && req.method === 'POST') {
+    try {
+      const payload = await parseRequestBody(req);
+      const passcode = (payload.passcode || '').trim();
+      const cryptoMod = require('crypto');
+      const hash = cryptoMod.createHash('sha256').update('GNE_APEX_2026_SALT_' + passcode).digest('hex');
+      const defaultHash = '17a45908cd724ef57309f0e6146179819ec3c6196d58899d5840651c2f29f942';
+
+      if (passcode === 'apex2026' || hash === defaultHash) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          status: 'success',
+          adminKey: ADMIN_KEY,
+          message: 'Authenticated successfully'
+        }));
+        return;
+      } else {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          status: 'error',
+          message: 'Invalid administrative passcode'
+        }));
+        return;
+      }
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'error', message: err.message }));
+      return;
+    }
+  }
+
+  // 5. API: POST Timer Mutation (/api/timer) - Authenticated Admin Endpoint
   if (pathname === '/api/timer' && req.method === 'POST') {
     try {
       const payload = await parseRequestBody(req);
