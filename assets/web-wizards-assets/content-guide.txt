@@ -1,0 +1,4 @@
+=== THEME: GreenTech & Smart Mobility ===
+Heading: Apex EcoMobility - Powering Sustainable Transit
+Tagline: Zero-emission innovation for smart future cities
+Sections to build: Navbar, Hero Banner, Features/Solutions, Interactive Calculator/Card, Contact/Footer

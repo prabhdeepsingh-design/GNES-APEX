@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Digital Identity — Dedicated Submission Portal</title>
+  <title>Digital Identity — Event Overview &amp; Rules | GNE'S APEX 2026</title>
   
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -13,7 +13,7 @@
   <!-- Stylesheet -->
   <link rel="stylesheet" href="style.css" />
 </head>
-<body data-event-type="Digital Identity">
+<body>
 
   <!-- Ambient Glowing Background -->
   <div class="bg-ambient" aria-hidden="true">
@@ -37,7 +37,7 @@
         </div>
       </a>
       <div class="portal-badge">
-        ◈ Official Submission Portal
+        ◈ Official Event Portal
       </div>
     </div>
   </header>
@@ -45,165 +45,104 @@
   <!-- ═══ STEP NAVIGATION ═══ -->
   <nav class="step-nav-bar">
     <div class="step-container">
-      <a href="index.html" class="step-item completed">
-        <div class="step-circle">✓</div>
-        <span class="step-label">Overview &amp; Rules</span>
-      </a>
-      <div class="step-divider filled"></div>
       <div class="step-item active">
-        <div class="step-circle">2</div>
-        <span class="step-label">File Submission</span>
+        <div class="step-circle">1</div>
+        <span class="step-label">Overview &amp; Rules</span>
       </div>
+      <div class="step-divider"></div>
+      <a href="digital-identity-theme.html" class="step-item">
+        <div class="step-circle">2</div>
+        <span class="step-label">Theme &amp; Timer</span>
+      </a>
+      <div class="step-divider"></div>
+      <a href="digital-identity-upload.html" class="step-item">
+        <div class="step-circle">3</div>
+        <span class="step-label">File Submission</span>
+      </a>
     </div>
   </nav>
 
   <!-- ═══ HERO SECTION ═══ -->
   <header class="curious-hero">
-    <div class="curious-badge">◈ Event No. 4 ◈</div>
     <h1 class="curious-title">Digital Identity</h1>
-    <p class="curious-subtitle">Dedicated Submission Portal &mdash; Validate and upload your competition design directly to evaluation.</p>
+    <p class="curious-subtitle">Official Logo Designing Competition &mdash; Read the event rules and submission guidelines before starting the timer.</p>
   </header>
 
   <!-- ═══ MAIN CONTENT ═══ -->
   <main class="container" style="position: relative; z-index: 1;">
-
-    <!-- ═══ SUBMISSION REQUIREMENTS SUMMARY ═══ -->
-    <section class="guidelines-card">
-      <div class="guidelines-header">
-        <div>
-          <h3>📋 Submission Rules &amp; Validation Checks</h3>
-          <p>Verify your file matches all event requirements before submitting:</p>
-        </div>
-      </div>
-
-      <div class="guidelines-grid">
-        <div class="guideline-box">
-          <div class="icon">📦</div>
-          <h4>Size Restriction</h4>
-          <p>Maximum allowed size: <strong>50 MB</strong>. Larger files will be blocked automatically.</p>
-        </div>
-
-        <div class="guideline-box">
-          <div class="icon">✅</div>
-          <h4>Accepted Formats</h4>
-          <p>Allowed extensions:</p>
-          <div class="tag-list">
-            <span class="tag-allowed">.png</span>
-            <span class="tag-allowed">.jpeg</span>
-            <span class="tag-allowed">.jpg</span>
-            <span class="tag-allowed">.pdf</span>
-          </div>
-        </div>
-
-        <div class="guideline-box">
-          <div class="icon">🚫</div>
-          <h4>Strictly Blocked</h4>
-          <p>Web code &amp; vector files are rejected:</p>
-          <div class="tag-list">
-            <span class="tag-forbidden">.html</span>
-            <span class="tag-forbidden">.svg</span>
-            <span class="tag-forbidden">.webp</span>
-          </div>
-        </div>
-
-        <div class="guideline-box">
-          <div class="icon">🏷️</div>
-          <h4>School Code Naming</h4>
-          <p>Files are automatically saved as: <code>[SchoolCode]_[FileName]</code>.</p>
-        </div>
-      </div>
-
-      <!-- Mandatory Preservation Warning -->
-      <div class="critical-warning">
-        <span style="font-size: 1.5rem; line-height: 1;">⚠️</span>
-        <div>
-          <strong>MANDATORY PRESERVATION:</strong>
-          <p style="margin-top:2px;">
-            The original image/file <strong>must NOT be deleted from your device</strong> after uploading. Keep your source design on your laptop until evaluation is finalized.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══ DEDICATED UPLOAD CARD ═══ -->
-    <section class="upload-card">
-      <h2 class="upload-card-title">
-        Upload Your Logo Design
+    <!-- ═══ OFFICIAL COMPETITION RULES ═══ -->
+    <section style="max-width: 800px; margin: 0 auto 2.5rem;">
+      <h2 style="font-size: 1.35rem; font-weight: 800; color: var(--text-highlight); margin-bottom: 1.2rem; text-align: center;">
+        Official Competition Rules
       </h2>
 
-      <!-- 1. School Code Input -->
-      <div class="form-group">
-        <label for="schoolCode">🏫 Assigned School Code *</label>
-        <input 
-          type="text" 
-          id="schoolCode" 
-          placeholder="e.g. SCH-042 or DPS-108" 
-          maxlength="30" 
-          autocomplete="off"
-          required
-        />
-        <span class="form-group-note">
-          Enter your institution's designated code. Personal names are not accepted.
-        </span>
-      </div>
+      <div class="rules-grid">
 
-      <!-- 2. Drop Zone & File Selector -->
-      <div class="form-group">
-        <label>📁 Select Competition File (Max 50 MB) *</label>
-        <div class="drop-zone" id="dropZone">
-          <input 
-            type="file" 
-            id="fileInput" 
-            accept=".png,.jpeg,.jpg,.pdf"
-          />
-          <div class="drop-icon">☁️</div>
-          <div class="drop-label">Drag &amp; drop design file here, or <span>browse</span></div>
-          <div class="drop-formats">Accepted: PNG, JPEG, JPG, PDF &bull; Max 50 MB</div>
-          <div class="file-info-chip" id="fileInfoChip" style="display:none;"></div>
+        <div class="rule-card">
+          <div class="rule-number">1</div>
+          <div class="rule-content">It is an <strong>individual competition</strong>.</div>
         </div>
-      </div>
 
-      <!-- Live Computed Name Display -->
-      <div id="fileNamingBadge" class="file-naming-badge">
-        🏷️ <strong>File will be uploaded as:</strong> 
-        <span id="computedFileName"></span>
-      </div>
-
-      <!-- 3. Button Controls: Preview, Clear, Upload -->
-      <div class="button-row">
-        <button type="button" class="btn btn-secondary btn-sm" id="previewBtn" onclick="openPreviewModal()" disabled>
-          👁️ Preview File
-        </button>
-        <button type="button" class="btn-danger-outline" id="clearBtn" onclick="clearUploadForm()">
-          🗑️ Clear Selection
-        </button>
-      </div>
-
-      <div style="margin-top: 14px;">
-        <button type="button" class="btn btn-primary" id="uploadBtn" onclick="handleCuriousUpload()" style="width: 100%;">
-          <span>🚀 Upload File</span>
-        </button>
-      </div>
-
-      <!-- Progress Indicator -->
-      <div class="progress-wrap" id="progressWrap">
-        <div class="progress-bar-bg">
-          <div class="progress-bar-fill" id="progressFill"></div>
+        <div class="rule-card">
+          <div class="rule-number">2</div>
+          <div class="rule-content"><strong>Only 1 participant</strong> is allowed per institution.</div>
         </div>
-        <div class="progress-text" id="progressText">Uploading...</div>
-      </div>
 
-      <!-- Status Alert Box -->
-      <div class="status-box" id="statusBox"></div>
+        <div class="rule-card">
+          <div class="rule-number">3</div>
+          <div class="rule-content">It is a <strong>logo designing</strong> competition.</div>
+        </div>
+
+        <div class="rule-card">
+          <div class="rule-number">4</div>
+          <div class="rule-content"><strong>Topic/Theme</strong> will be given on the spot.</div>
+        </div>
+
+        <div class="rule-card">
+          <div class="rule-number">5</div>
+          <div class="rule-content"><strong>Time Limit:</strong> 60 minutes.</div>
+        </div>
+
+        <div class="rule-card">
+          <div class="rule-number">6</div>
+          <div class="rule-content"><strong>Permitted Design Tools:</strong> Google Slides, Canva, Adobe Photoshop, Corel Draw, MS-Office, Paint.</div>
+        </div>
+
+        <div class="rule-card">
+          <div class="rule-number">7</div>
+          <div class="rule-content">Internet access will be allowed <strong>only for using Canva and Google Slides</strong>.</div>
+        </div>
+
+        <div class="rule-card">
+          <div class="rule-number">8</div>
+          <div class="rule-content"><strong>Canvas Size:</strong> 800 x 800 pixels.</div>
+        </div>
+
+        <div class="rule-card">
+          <div class="rule-number">9</div>
+          <div class="rule-content">Participants are encouraged to <strong>bring their own laptops</strong>, although computers will be available for use during the event.</div>
+        </div>
+
+        <div class="rule-card">
+          <div class="rule-number">10</div>
+          <div class="rule-content">In case participants are unable to bring their own laptops, we will only provide <strong>Paint, Canva, and Google Slides</strong> for their use.</div>
+        </div>
+
+      </div>
     </section>
 
-    <!-- ═══ CONFIRMATION NOTE ═══ -->
-    <div class="submission-note" id="confirmationNote" style="display:none;">
-      🎉 <strong id="uploadedFileName"></strong> has been uploaded with your assigned school code only.
+    <!-- ═══ CALL TO ACTION BAR ═══ -->
+    <div class="action-bar">
+      <a href="digital-identity-theme.html" class="btn btn-primary btn-lg">
+        <span>Proceed to Theme &amp; Start Competition &rarr;</span>
+      </a>
+      <p class="action-note">
+        Clicking "Proceed" will reveal the competition theme and launch the 60-minute countdown timer.
+      </p>
     </div>
 
-    <!-- Navigation link -->
-    <div style="text-align: center; margin: 24px 0 40px;">
+    <!-- Back to Home -->
+    <div style="text-align: center; margin: 10px 0 40px;">
       <a href="index.html" class="btn btn-secondary btn-sm">
         &larr; Back to Portal Home
       </a>
@@ -211,33 +150,9 @@
 
   </main>
 
-  <!-- ═══ PREVIEW MODAL ═══ -->
-  <div class="modal-overlay" id="previewModal">
-    <div class="modal-content-box">
-      <div class="modal-header-bar">
-        <h3>Design Preview</h3>
-        <button type="button" class="btn-close-modal" onclick="closePreviewModal()">&times;</button>
-      </div>
-      <div class="preview-body">
-        <div class="preview-media-cont" id="previewMediaContainer">
-          <!-- Dynamic media injected here -->
-        </div>
-        <div class="preview-meta-box">
-          <div><strong>Original Name:</strong> <span id="metaOrigName">-</span></div>
-          <div><strong>Uploaded As:</strong> <span id="metaTargetName" style="color:var(--accent-gold-light); font-family:var(--font-mono);">-</span></div>
-          <div><strong>File Size:</strong> <span id="metaSize">-</span></div>
-          <div><strong>MIME Type:</strong> <span id="metaType">-</span></div>
-        </div>
-        <div style="margin-top: 18px; text-align: right;">
-          <button type="button" class="btn btn-secondary btn-sm" onclick="closePreviewModal()">Close Preview</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- Simplified Minimal Footer -->
   <footer class="portal-footer">
-    <div class="container portal-footer-inner" style="justify-content: center; text-align: center;">
+    <div class="container portal-footer-inner">
       <div>
         &copy; 2026 GNE'S APEX &bull; Causmic Club &bull; Guru Nanak Dev Engineering College, Ludhiana
       </div>

@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Web Wizards — Theme &amp; Asset Pack | GNE'S APEX 2026</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Ambient Glowing Background -->
+  <div class="bg-ambient" aria-hidden="true">
+    <div class="glow-orb glow-orb-1"></div>
+    <div class="glow-orb glow-orb-2"></div>
+    <div class="glow-orb glow-orb-3"></div>
+  </div>
+  <div class="bg-grid" aria-hidden="true"></div>
+
+  <!-- ═══ TOP BRAND HEADER ═══ -->
+  <header class="portal-header">
+    <div class="container portal-nav">
+      <a href="index.html" class="portal-brand">
+        <div class="portal-logos">
+          <img src="assets/causmic-logo.png" alt="Causmic Club Logo" class="portal-logo-img" />
+          <img src="assets/gndec-logo.png" alt="GNDEC Logo" class="portal-logo-img" />
+        </div>
+        <div class="portal-brand-text">
+          <span class="portal-brand-title">GNE'S <span>APEX 2026</span></span>
+          <span class="portal-brand-sub">Causmic Club &bull; GNDEC Ludhiana</span>
+        </div>
+      </a>
+      <div class="portal-badge">
+        ◈ Official Event Portal
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══ STEP NAVIGATION ═══ -->
+  <nav class="step-nav-bar">
+    <div class="step-container">
+      <a href="web-wizards.html" class="step-item completed">
+        <div class="step-circle">✓</div>
+        <span class="step-label">Overview &amp; Rules</span>
+      </a>
+      <div class="step-divider filled"></div>
+      <div class="step-item active">
+        <div class="step-circle">2</div>
+        <span class="step-label">Theme &amp; Assets</span>
+      </div>
+      <div class="step-divider"></div>
+      <a href="web-wizards-upload.html" class="step-item">
+        <div class="step-circle">3</div>
+        <span class="step-label">File Submission</span>
+      </a>
+    </div>
+  </nav>
+
+  <!-- ═══ HERO SECTION ═══ -->
+  <header class="curious-hero">
+    <h1 class="curious-title">Web Wizards</h1>
+    <p class="curious-subtitle">Competition Workspace &mdash; Download your event assets, review the spot theme, start your 90-minute countdown, and proceed to upload when complete.</p>
+  </header>
+
+  <!-- ═══ MAIN CONTENT ═══ -->
+  <main class="container" style="position: relative; z-index: 1; max-width: 860px;">
+
+    <!-- ═══ 1. PROVIDED EVENT ASSETS FOLDER DOWNLOAD ═══ -->
+    <section class="asset-pack-card">
+      <div class="asset-pack-info">
+        <div class="asset-pack-icon">📁</div>
+        <div class="asset-pack-details">
+          <h3>Official Event Asset Pack</h3>
+          <p>Download the official folder of assets provided for Web Wizards. Contains brand logos, hero imagery, and content guidelines for the assigned theme.</p>
+          <div class="asset-pack-meta">
+            <span class="asset-meta-badge">📦 Format: .ZIP</span>
+            <span class="asset-meta-badge">💾 Size: ~1.3 MB</span>
+            <span class="asset-meta-badge">🎨 Assets: Brand, Images, Brief</span>
+          </div>
+        </div>
+      </div>
+      <a href="assets/web-wizards-assets.zip" download="Web-Wizards-Assets.zip" class="asset-download-btn">
+        <span>⬇️ Download Event Asset Folder (.ZIP)</span>
+      </a>
+    </section>
+
+    <!-- ═══ 2. ON-THE-SPOT THEME SHOWCASE ═══ -->
+    <section class="theme-showcase">
+      <span class="theme-pill">On-The-Spot Theme Announcement</span>
+      <h2>"Apex Horizon: Next-Generation Green Energy &amp; Smart Mobility"</h2>
+      <p>
+        Design and code a fully responsive, modern website showcasing an eco-mobility and renewable energy initiative. Incorporate the provided images, logos, and content structure. Focus on clean semantic HTML, structured CSS layouts (Flexbox/Grid), and engaging typography.
+      </p>
+
+      <div class="theme-specs">
+        <div class="theme-spec-item">
+          <span>⏱️ Duration:</span>
+          <strong>90 Minutes</strong>
+        </div>
+        <div class="theme-spec-item">
+          <span>💻 Compulsory:</span>
+          <strong>HTML5 &amp; CSS3</strong>
+        </div>
+        <div class="theme-spec-item">
+          <span>⚡ Optional:</span>
+          <strong>Vanilla JavaScript</strong>
+        </div>
+        <div class="theme-spec-item">
+          <span>🔌 Mode:</span>
+          <strong>Completely Offline</strong>
+        </div>
+        <div class="theme-spec-item">
+          <span>👥 Team:</span>
+          <strong>2 Participants &bull; 1 Device</strong>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 3. 90-MINUTE COUNTDOWN TIMER WIDGET ═══ -->
+    <section class="timer-card">
+      <span class="timer-status-badge" id="timerStatusBadge">⏱️ Timer Ready (90:00)</span>
+      <h3 class="timer-card-title">Official Countdown Clock</h3>
+      
+      <div class="timer-display" id="timerDisplay">90:00</div>
+
+      <div class="timer-controls">
+        <button type="button" id="startTimerBtn" class="btn btn-primary" onclick="toggleTimer()">
+          <span id="btnTimerIcon">▶</span>
+          <span id="btnTimerText">Start 90-Minute Timer</span>
+        </button>
+        <button type="button" id="resetTimerBtn" class="btn btn-secondary" onclick="resetTimer()" style="display:none;">
+          ↻ Reset Timer
+        </button>
+      </div>
+
+      <p class="timer-note">
+        *This timer runs locally in your browser to help your team manage your 90-minute development sprint effectively.
+      </p>
+    </section>
+
+    <!-- ═══ 4. RULES RECAP CARD ═══ -->
+    <section class="guidelines-card" style="margin-bottom: 24px;">
+      <div class="guidelines-header">
+        <div>
+          <h3>📋 Quick Rules Recap</h3>
+          <p>Key technical constraints to remember while building:</p>
+        </div>
+      </div>
+
+      <div class="rules-grid" style="margin-bottom: 0;">
+        <div class="rule-card">
+          <div class="rule-number">💻</div>
+          <div class="rule-content">Compulsory Languages: <strong>HTML &amp; CSS</strong> (JavaScript optional).</div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-number">🔌</div>
+          <div class="rule-content"><strong>No Internet access</strong> is permitted during the competition.</div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-number">🖥️</div>
+          <div class="rule-content">Only <strong>1 device</strong> is allowed per team.</div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-number">📦</div>
+          <div class="rule-content">Bundle your final website into a <strong>.ZIP</strong> archive (Max 50 MB).</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 5. ACTION BAR (PROCEED TO SUBMISSION) ═══ -->
+    <div class="action-bar" style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;">
+      <a href="web-wizards.html" class="btn btn-secondary">
+        &larr; Back to Rules
+      </a>
+      <a href="web-wizards-upload.html" class="btn btn-primary btn-lg">
+        <span>Proceed to Submit / Upload Project &rarr;</span>
+      </a>
+    </div>
+
+  </main>
+
+  <!-- Simplified Minimal Footer -->
+  <footer class="portal-footer">
+    <div class="container portal-footer-inner" style="justify-content: center; text-align: center;">
+      <div>
+        &copy; 2026 GNE'S APEX &bull; Causmic Club &bull; Guru Nanak Dev Engineering College, Ludhiana
+      </div>
+    </div>
+  </footer>
+
+  <!-- 90-Minute Timer Script -->
+  <script>
+    const TOTAL_SECONDS = 90 * 60; // 90 minutes = 5400 seconds
+    let remainingSeconds = TOTAL_SECONDS;
+    let timerInterval = null;
+    let isRunning = false;
+
+    const display = document.getElementById('timerDisplay');
+    const startBtn = document.getElementById('startTimerBtn');
+    const resetBtn = document.getElementById('resetTimerBtn');
+    const statusBadge = document.getElementById('timerStatusBadge');
+    const btnIcon = document.getElementById('btnTimerIcon');
+    const btnText = document.getElementById('btnTimerText');
+
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function updateDisplay() {
+      display.textContent = formatTime(remainingSeconds);
+
+      if (remainingSeconds <= 300) { // 5 minutes
+        display.className = 'timer-display timer-danger';
+        statusBadge.textContent = '🚨 Final 5 Minutes Remaining!';
+        statusBadge.style.color = '#fca5a5';
+      } else if (remainingSeconds <= 600) { // 10 minutes
+        display.className = 'timer-display timer-warning';
+        statusBadge.textContent = '⚠️ 10 Minutes Left!';
+        statusBadge.style.color = '#fde047';
+      } else {
+        display.className = 'timer-display';
+        statusBadge.textContent = isRunning ? '⚡ Timer Running (Coding Phase)' : '⏱️ Timer Paused';
+        statusBadge.style.color = '';
+      }
+    }
+
+    function toggleTimer() {
+      if (isRunning) {
+        clearInterval(timerInterval);
+        isRunning = false;
+        btnIcon.textContent = '▶';
+        btnText.textContent = 'Resume 90-Minute Timer';
+        startBtn.classList.remove('btn-danger');
+        startBtn.classList.add('btn-primary');
+        resetBtn.style.display = 'inline-flex';
+        statusBadge.textContent = '⏸️ Timer Paused';
+      } else {
+        isRunning = true;
+        btnIcon.textContent = '⏸';
+        btnText.textContent = 'Pause Timer';
+        startBtn.classList.remove('btn-primary');
+        startBtn.classList.add('btn-secondary');
+        resetBtn.style.display = 'inline-flex';
+        statusBadge.textContent = '⚡ Timer Running (Coding Phase)';
+
+        timerInterval = setInterval(() => {
+          if (remainingSeconds > 0) {
+            remainingSeconds--;
+            updateDisplay();
+          } else {
+            clearInterval(timerInterval);
+            isRunning = false;
+            display.textContent = '00:00';
+            statusBadge.textContent = '🏁 Time Expired! Upload Your Project';
+            statusBadge.style.color = '#fb7185';
+            btnIcon.textContent = '▶';
+            btnText.textContent = 'Restart Timer';
+            alert('Time is up for Web Wizards! Please archive your project and proceed to the submission page.');
+          }
+        }, 1000);
+      }
+    }
+
+    function resetTimer() {
+      clearInterval(timerInterval);
+      isRunning = false;
+      remainingSeconds = TOTAL_SECONDS;
+      updateDisplay();
+      btnIcon.textContent = '▶';
+      btnText.textContent = 'Start 90-Minute Timer';
+      startBtn.classList.remove('btn-secondary');
+      startBtn.classList.add('btn-primary');
+      resetBtn.style.display = 'none';
+      statusBadge.textContent = '⏱️ Timer Ready (90:00)';
+      statusBadge.style.color = '';
+    }
+  </script>
+</body>
+</html>

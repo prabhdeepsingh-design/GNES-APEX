@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Digital Identity — Theme &amp; Countdown Timer | GNE'S APEX 2026</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Ambient Glowing Background -->
+  <div class="bg-ambient" aria-hidden="true">
+    <div class="glow-orb glow-orb-1"></div>
+    <div class="glow-orb glow-orb-2"></div>
+    <div class="glow-orb glow-orb-3"></div>
+  </div>
+  <div class="bg-grid" aria-hidden="true"></div>
+
+  <!-- ═══ TOP BRAND HEADER ═══ -->
+  <header class="portal-header">
+    <div class="container portal-nav">
+      <a href="index.html" class="portal-brand">
+        <div class="portal-logos">
+          <img src="assets/causmic-logo.png" alt="Causmic Club Logo" class="portal-logo-img" />
+          <img src="assets/gndec-logo.png" alt="GNDEC Logo" class="portal-logo-img" />
+        </div>
+        <div class="portal-brand-text">
+          <span class="portal-brand-title">GNE'S <span>APEX 2026</span></span>
+          <span class="portal-brand-sub">Causmic Club &bull; GNDEC Ludhiana</span>
+        </div>
+      </a>
+      <div class="portal-badge">
+        ◈ Official Event Portal
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══ STEP NAVIGATION ═══ -->
+  <nav class="step-nav-bar">
+    <div class="step-container">
+      <a href="digital-identity.html" class="step-item completed">
+        <div class="step-circle">✓</div>
+        <span class="step-label">Overview &amp; Rules</span>
+      </a>
+      <div class="step-divider filled"></div>
+      <div class="step-item active">
+        <div class="step-circle">2</div>
+        <span class="step-label">Theme &amp; Timer</span>
+      </div>
+      <div class="step-divider"></div>
+      <a href="digital-identity-upload.html" class="step-item">
+        <div class="step-circle">3</div>
+        <span class="step-label">File Submission</span>
+      </a>
+    </div>
+  </nav>
+
+  <!-- ═══ HERO SECTION ═══ -->
+  <header class="curious-hero">
+    <h1 class="curious-title">Digital Identity</h1>
+    <p class="curious-subtitle">Competition Workspace &mdash; View the assigned theme, start your 60-minute countdown, and proceed to upload when ready.</p>
+  </header>
+
+  <!-- ═══ MAIN CONTENT ═══ -->
+  <main class="container" style="position: relative; z-index: 1; max-width: 860px;">
+
+    <!-- ═══ ON-THE-SPOT THEME SHOWCASE ═══ -->
+    <section class="theme-showcase">
+      <span class="theme-pill">On-The-Spot Theme Announcement</span>
+      <h2>"Convergence: Autonomous Tech &amp; Biometric Trust"</h2>
+      <p>
+        Design a clean, memorable, and scalable logo representing the evolution of digital identification in the modern era. Your concept should communicate security, futuristic connectivity, and authentic human individuality through thoughtful geometry and color harmony.
+      </p>
+
+      <div class="theme-specs">
+        <div class="theme-spec-item">
+          <span>📐 Required Canvas:</span>
+          <strong>800 &times; 800 Pixels</strong>
+        </div>
+        <div class="theme-spec-item">
+          <span>⏱️ Official Duration:</span>
+          <strong>60 Minutes</strong>
+        </div>
+        <div class="theme-spec-item">
+          <span>🎨 Permitted Tools:</span>
+          <strong>Google Slides, Canva, Photoshop, Corel Draw, Paint, MS Office</strong>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ 60-MINUTE COUNTDOWN TIMER WIDGET ═══ -->
+    <section class="timer-card">
+      <span class="timer-status-badge" id="timerStatusBadge">⏱️ Timer Ready (60:00)</span>
+      <h3 class="timer-card-title">Official Countdown Clock</h3>
+      
+      <div class="timer-display" id="timerDisplay">60:00</div>
+
+      <div class="timer-controls">
+        <button type="button" id="startTimerBtn" class="btn btn-primary" onclick="toggleTimer()">
+          <span id="btnTimerIcon">▶</span>
+          <span id="btnTimerText">Start 60-Minute Timer</span>
+        </button>
+        <button type="button" id="resetTimerBtn" class="btn btn-secondary" onclick="resetTimer()" style="display:none;">
+          ↻ Reset Timer
+        </button>
+      </div>
+
+      <p class="timer-note">
+        *This timer runs locally in your browser to help you manage your design time effectively.
+      </p>
+    </section>
+
+    <!-- ═══ RULES RECAP CARD ═══ -->
+    <section class="guidelines-card" style="margin-bottom: 24px;">
+      <div class="guidelines-header">
+        <div>
+          <h3>📋 Quick Rules Recap</h3>
+          <p>Essential constraints to remember during design:</p>
+        </div>
+      </div>
+
+      <div class="rules-grid" style="margin-bottom: 0;">
+        <div class="rule-card">
+          <div class="rule-number">🌐</div>
+          <div class="rule-content">Internet usage is <strong>only for Canva and Google Slides</strong>.</div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-number">📐</div>
+          <div class="rule-content">Dimensions must be exactly <strong>800 &times; 800 pixels</strong>.</div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-number">💾</div>
+          <div class="rule-content">Do not delete the original file from your computer after exporting.</div>
+        </div>
+        <div class="rule-card">
+          <div class="rule-number">📁</div>
+          <div class="rule-content">File formats allowed: <strong>PNG, JPEG, JPG, PDF</strong> (Max 50 MB).</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ ACTION BAR (PROCEED TO SUBMIT) ═══ -->
+    <div class="action-bar" style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;">
+      <a href="digital-identity.html" class="btn btn-secondary">
+        &larr; Back to Rules
+      </a>
+      <a href="digital-identity-upload.html" class="btn btn-primary btn-lg">
+        <span>Proceed to Submit / Upload File &rarr;</span>
+      </a>
+    </div>
+
+  </main>
+
+  <!-- Simplified Minimal Footer -->
+  <footer class="portal-footer">
+    <div class="container portal-footer-inner">
+      <div>
+        &copy; 2026 GNE'S APEX &bull; Causmic Club &bull; Guru Nanak Dev Engineering College, Ludhiana
+      </div>
+    </div>
+  </footer>
+
+  <!-- Timer Script -->
+  <script>
+    const TOTAL_SECONDS = 60 * 60; // 60 minutes
+    let remainingSeconds = TOTAL_SECONDS;
+    let timerInterval = null;
+    let isRunning = false;
+
+    const display = document.getElementById('timerDisplay');
+    const startBtn = document.getElementById('startTimerBtn');
+    const resetBtn = document.getElementById('resetTimerBtn');
+    const statusBadge = document.getElementById('timerStatusBadge');
+    const btnIcon = document.getElementById('btnTimerIcon');
+    const btnText = document.getElementById('btnTimerText');
+
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function updateDisplay() {
+      display.textContent = formatTime(remainingSeconds);
+
+      if (remainingSeconds <= 300) { // 5 minutes
+        display.className = 'timer-display timer-danger';
+        statusBadge.textContent = '🚨 Final 5 Minutes Remaining!';
+        statusBadge.style.color = '#fca5a5';
+      } else if (remainingSeconds <= 600) { // 10 minutes
+        display.className = 'timer-display timer-warning';
+        statusBadge.textContent = '⚠️ 10 Minutes Left!';
+        statusBadge.style.color = '#fde047';
+      } else if (isRunning) {
+        display.className = 'timer-display';
+        statusBadge.textContent = '⏱️ Competition In Progress';
+        statusBadge.style.color = '#86efac';
+      } else {
+        display.className = 'timer-display';
+        statusBadge.textContent = '⏸️ Timer Paused';
+        statusBadge.style.color = 'rgba(255,255,255,0.7)';
+      }
+    }
+
+    function toggleTimer() {
+      if (!isRunning) {
+        isRunning = true;
+        btnIcon.textContent = '⏸';
+        btnText.textContent = 'Pause Timer';
+        resetBtn.style.display = 'inline-flex';
+        updateDisplay();
+
+        timerInterval = setInterval(() => {
+          if (remainingSeconds > 0) {
+            remainingSeconds--;
+            updateDisplay();
+
+            if (remainingSeconds === 0) {
+              clearInterval(timerInterval);
+              isRunning = false;
+              btnIcon.textContent = '⏹';
+              btnText.textContent = 'Time Up!';
+              startBtn.disabled = true;
+              statusBadge.textContent = '🏁 60 Minutes Completed! Please proceed to upload.';
+              alert('⏰ 60 Minutes Time Limit Reached! Please export your logo and proceed to the submission page.');
+            }
+          }
+        }, 1000);
+      } else {
+        isRunning = false;
+        clearInterval(timerInterval);
+        btnIcon.textContent = '▶';
+        btnText.textContent = 'Resume Timer';
+        updateDisplay();
+      }
+    }
+
+    function resetTimer() {
+      clearInterval(timerInterval);
+      isRunning = false;
+      remainingSeconds = TOTAL_SECONDS;
+      btnIcon.textContent = '▶';
+      btnText.textContent = 'Start 60-Minute Timer';
+      startBtn.disabled = false;
+      resetBtn.style.display = 'none';
+      statusBadge.textContent = '⏱️ Timer Ready (60:00)';
+      statusBadge.style.color = 'rgba(255,255,255,0.7)';
+      display.className = 'timer-display';
+      display.textContent = '60:00';
+    }
+  </script>
+
+  <!-- Global scripts -->
+  <script src="script.js"></script>
+</body>
+</html>

@@ -117,9 +117,9 @@ function initNativeFileUploader() {
 
     // Type validation
     if (eventType === 'Web Wizards') {
-      const validZip = file.name.match(/\.(zip|rar|tar\.gz|7z)$/i);
+      const validZip = file.name.match(/\.zip$/i);
       if (!validZip) {
-        showToast('⚠️ Please upload a compressed archive (.ZIP or .RAR)');
+        showToast('⚠️ Please upload a .ZIP archive');
         return;
       }
     } else if (eventType === 'Digital Identity') {
@@ -639,8 +639,8 @@ function validateCuriousFile(file) {
   let forbidden = [];
 
   if (eventType === 'Web Wizards') {
-    allowed = ['zip', 'rar', 'tar.gz', '7z'];
-    forbidden = ['exe', 'bat', 'sh', 'php'];
+    allowed = ['zip'];
+    forbidden = ['rar', '7z', 'tar', 'gz', 'exe', 'bat', 'sh', 'php'];
   } else {
     // Digital Identity
     allowed = ['png', 'jpeg', 'jpg', 'pdf'];
@@ -654,11 +654,10 @@ function validateCuriousFile(file) {
     };
   }
 
-  const isTarGz = file.name.toLowerCase().endsWith('.tar.gz');
-  if (!allowed.includes(ext) && !isTarGz) {
+  if (!allowed.includes(ext)) {
     return {
       valid: false,
-      error: `⚠️ Unsupported file format (.${ext}). Allowed formats: ${allowed.map(a => '.' + a.toUpperCase()).join(', ')}.`
+      error: `⚠️ Unsupported file format (.${ext}). Allowed format: ${allowed.map(a => '.' + a.toUpperCase()).join(', ')} only.`
     };
   }
 
