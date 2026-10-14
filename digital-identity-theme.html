@@ -95,25 +95,28 @@
       </div>
     </section>
 
-    <!-- ═══ 60-MINUTE COUNTDOWN TIMER WIDGET ═══ -->
+    <!-- ═══ BROADCAST ANNOUNCEMENT BANNER (FROM EVENT HEAD) ═══ -->
+    <div class="participant-announcement-banner" id="participantAnnouncement" style="display:none;">
+      <div class="announcement-icon">📢</div>
+      <div class="announcement-content">
+        <h4>Official Notice from Event Head</h4>
+        <p class="announcement-text"></p>
+      </div>
+    </div>
+
+    <!-- ═══ 2. OFFICIAL COUNTDOWN TIMER WIDGET (ADMIN CONTROLLED) ═══ -->
     <section class="timer-card">
-      <span class="timer-status-badge" id="timerStatusBadge">⏱️ Timer Ready (60:00)</span>
-      <h3 class="timer-card-title">Official Countdown Clock</h3>
+      <span class="timer-status-badge" id="timerStatusBadge">⏳ Standby &mdash; Controlled by Event Head</span>
+      <h3 class="timer-card-title">Official Competition Countdown</h3>
       
       <div class="timer-display" id="timerDisplay">60:00</div>
 
-      <div class="timer-controls">
-        <button type="button" id="startTimerBtn" class="btn btn-primary" onclick="toggleTimer()">
-          <span id="btnTimerIcon">▶</span>
-          <span id="btnTimerText">Start 60-Minute Timer</span>
-        </button>
-        <button type="button" id="resetTimerBtn" class="btn btn-secondary" onclick="resetTimer()" style="display:none;">
-          ↻ Reset Timer
-        </button>
+      <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.28); border-radius: var(--radius-full); padding: 0.35rem 0.95rem; font-size: 0.76rem; font-weight: 700; color: #c7d2fe; margin-top: 0.4rem;">
+        🔒 Controlled exclusively by Event Heads
       </div>
 
       <p class="timer-note">
-        *This timer runs locally in your browser to help you manage your design time effectively.
+        *This countdown clock is synchronized in real-time by the Event Head Console. Time begins when the event head officially initiates the round.
       </p>
     </section>
 
@@ -167,97 +170,16 @@
     </div>
   </footer>
 
-  <!-- Timer Script -->
-  <script>
-    const TOTAL_SECONDS = 60 * 60; // 60 minutes
-    let remainingSeconds = TOTAL_SECONDS;
-    let timerInterval = null;
-    let isRunning = false;
-
-    const display = document.getElementById('timerDisplay');
-    const startBtn = document.getElementById('startTimerBtn');
-    const resetBtn = document.getElementById('resetTimerBtn');
-    const statusBadge = document.getElementById('timerStatusBadge');
-    const btnIcon = document.getElementById('btnTimerIcon');
-    const btnText = document.getElementById('btnTimerText');
-
-    function formatTime(sec) {
-      const m = Math.floor(sec / 60);
-      const s = sec % 60;
-      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-    }
-
-    function updateDisplay() {
-      display.textContent = formatTime(remainingSeconds);
-
-      if (remainingSeconds <= 300) { // 5 minutes
-        display.className = 'timer-display timer-danger';
-        statusBadge.textContent = '🚨 Final 5 Minutes Remaining!';
-        statusBadge.style.color = '#fca5a5';
-      } else if (remainingSeconds <= 600) { // 10 minutes
-        display.className = 'timer-display timer-warning';
-        statusBadge.textContent = '⚠️ 10 Minutes Left!';
-        statusBadge.style.color = '#fde047';
-      } else if (isRunning) {
-        display.className = 'timer-display';
-        statusBadge.textContent = '⏱️ Competition In Progress';
-        statusBadge.style.color = '#86efac';
-      } else {
-        display.className = 'timer-display';
-        statusBadge.textContent = '⏸️ Timer Paused';
-        statusBadge.style.color = 'rgba(255,255,255,0.7)';
-      }
-    }
-
-    function toggleTimer() {
-      if (!isRunning) {
-        isRunning = true;
-        btnIcon.textContent = '⏸';
-        btnText.textContent = 'Pause Timer';
-        resetBtn.style.display = 'inline-flex';
-        updateDisplay();
-
-        timerInterval = setInterval(() => {
-          if (remainingSeconds > 0) {
-            remainingSeconds--;
-            updateDisplay();
-
-            if (remainingSeconds === 0) {
-              clearInterval(timerInterval);
-              isRunning = false;
-              btnIcon.textContent = '⏹';
-              btnText.textContent = 'Time Up!';
-              startBtn.disabled = true;
-              statusBadge.textContent = '🏁 60 Minutes Completed! Please proceed to upload.';
-              alert('⏰ 60 Minutes Time Limit Reached! Please export your logo and proceed to the submission page.');
-            }
-          }
-        }, 1000);
-      } else {
-        isRunning = false;
-        clearInterval(timerInterval);
-        btnIcon.textContent = '▶';
-        btnText.textContent = 'Resume Timer';
-        updateDisplay();
-      }
-    }
-
-    function resetTimer() {
-      clearInterval(timerInterval);
-      isRunning = false;
-      remainingSeconds = TOTAL_SECONDS;
-      btnIcon.textContent = '▶';
-      btnText.textContent = 'Start 60-Minute Timer';
-      startBtn.disabled = false;
-      resetBtn.style.display = 'none';
-      statusBadge.textContent = '⏱️ Timer Ready (60:00)';
-      statusBadge.style.color = 'rgba(255,255,255,0.7)';
-      display.className = 'timer-display';
-      display.textContent = '60:00';
-    }
-  </script>
-
-  <!-- Global scripts -->
+  <!-- Scripts & Centralized Synced Timer Engine -->
   <script src="script.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      ApexTimerEngine.bindParticipantUI('digital_identity', {
+        displayId: 'timerDisplay',
+        statusBadgeId: 'timerStatusBadge',
+        announcementId: 'participantAnnouncement'
+      });
+    });
+  </script>
 </body>
 </html>

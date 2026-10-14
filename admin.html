@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Event Heads Control Center | GNE'S APEX 2026</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Ambient Glowing Background -->
+  <div class="bg-ambient" aria-hidden="true">
+    <div class="glow-orb glow-orb-1"></div>
+    <div class="glow-orb glow-orb-2"></div>
+    <div class="glow-orb glow-orb-3"></div>
+  </div>
+  <div class="bg-grid" aria-hidden="true"></div>
+
+  <!-- ═══ TOP BRAND HEADER ═══ -->
+  <header class="portal-header">
+    <div class="container portal-nav">
+      <a href="index.html" class="portal-brand">
+        <div class="portal-logos">
+          <img src="assets/causmic-logo.png" alt="Causmic Club Logo" class="portal-logo-img" />
+          <img src="assets/gndec-logo.png" alt="GNDEC Logo" class="portal-logo-img" />
+        </div>
+        <div class="portal-brand-text">
+          <span class="portal-brand-title">GNE'S <span>APEX 2026</span></span>
+          <span class="portal-brand-sub">Causmic Club &bull; Event Heads Console</span>
+        </div>
+      </a>
+
+      <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+        <span class="security-pill" id="securitySessionPill" style="display:none;">
+          🔒 Secure Session (15m Idle Protection)
+        </span>
+        <button type="button" class="btn btn-secondary btn-sm" id="btnOpenChangePass" onclick="openChangePasscodeModal()" style="display:none;">
+          🔑 Change Passcode
+        </button>
+        <button type="button" class="btn btn-secondary btn-sm" id="logoutBtn" onclick="handleLogout()" style="display:none;">
+          🔒 Log Out
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container" style="position: relative; z-index: 1; padding-top: 2rem; padding-bottom: 3.5rem;">
+
+    <!-- ═══ 1. AUTH GATE (PASSCODE LOGIN WITH BRUTE-FORCE SHIELD) ═══ -->
+    <div class="admin-login-wrap" id="authGate">
+      <div class="admin-login-card">
+        <div class="admin-login-icon">🔐</div>
+        <h1 class="admin-login-title">Event Heads Console</h1>
+        <p class="admin-login-sub">
+          Authorized personnel only. Enter your official event head security key to access the live competition timers, time adjustments, and spot announcements.
+        </p>
+
+        <!-- Lockout Alert Banner -->
+        <div class="admin-lockout-banner" id="lockoutBanner">
+          <strong>⛔ SECURITY LOCKOUT:</strong>
+          <span id="lockoutMsg">Too many failed login attempts. Try again in 60s.</span>
+        </div>
+
+        <form class="admin-login-form" id="loginForm" onsubmit="handleAdminLogin(event)">
+          <div class="pin-input-group">
+            <input 
+              type="password" 
+              id="adminPasscode" 
+              class="admin-pin-input" 
+              placeholder="ENTER PASSCODE" 
+              autocomplete="off"
+              autofocus 
+              required 
+            />
+            <button type="button" class="btn-toggle-pin" id="togglePinBtn" onclick="togglePasscodeVisibility()" title="Show/Hide Passcode">
+              👁️
+            </button>
+          </div>
+
+          <button type="submit" class="btn btn-primary" id="loginSubmitBtn" style="width: 100%;">
+            <span>Unlock Control Center &rarr;</span>
+          </button>
+        </form>
+
+        <div class="attempts-warning" id="attemptsWarning"></div>
+
+        <p style="font-size: 0.74rem; color: var(--text-muted); margin-top: 1.4rem; line-height: 1.45;">
+          🛡️ Protected by salted cryptographic hashing and automatic brute-force rate-limiting.
+        </p>
+      </div>
+    </div>
+
+    <!-- ═══ 2. MAIN DASHBOARD (EVENT HEADS CONSOLE) ═══ -->
+    <div id="adminDashboard" style="display: none;">
+
+      <!-- Header Strip -->
+      <div class="admin-header-strip">
+        <div>
+          <h2 class="admin-header-title">Live <span>Competition Timer</span> Management</h2>
+          <p style="font-size: 0.88rem; color: var(--text-secondary); margin-top: 0.2rem;">
+            Cryptographically signed controls. Actions execute with zero latency across participant screens.
+          </p>
+        </div>
+
+        <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+          <a href="web-wizards-theme.html" target="_blank" class="btn btn-secondary btn-sm">
+            👁️ Web Wizards Theme Tab
+          </a>
+          <a href="digital-identity-theme.html" target="_blank" class="btn btn-secondary btn-sm">
+            👁️ Digital Identity Theme Tab
+          </a>
+        </div>
+      </div>
+
+      <!-- DUAL EVENT CONSOLE GRID -->
+      <div class="admin-console-grid">
+
+        <!-- ───────────────────────────────────────────────
+             PANEL 1: WEB WIZARDS EVENT HEAD
+             ─────────────────────────────────────────────── -->
+        <article class="admin-panel-card web-panel">
+          <div class="admin-panel-header">
+            <div class="admin-panel-title-group">
+              <div class="admin-panel-icon web">⚡</div>
+              <div>
+                <h3 class="admin-panel-title">Web Wizards</h3>
+                <span class="admin-panel-subtitle">Inter-School Web Development (HTML/CSS)</span>
+              </div>
+            </div>
+            <span class="admin-state-pill ready" id="ww-pill">● READY</span>
+          </div>
+
+          <!-- Official Clock Display -->
+          <div class="admin-clock-box">
+            <div class="admin-clock-digits" id="ww-clock">90:00</div>
+            <div class="admin-clock-meta" id="ww-meta">Total: 90m | Status: READY</div>
+          </div>
+
+          <!-- Preset Duration Selection -->
+          <div class="admin-preset-row">
+            <span class="admin-preset-label">Duration:</span>
+            <button type="button" class="btn-preset active" onclick="setEventDuration('web_wizards', 90, this)">90 Min</button>
+            <button type="button" class="btn-preset" onclick="setEventDuration('web_wizards', 60, this)">60 Min</button>
+            <button type="button" class="btn-preset" onclick="setEventDuration('web_wizards', 45, this)">45 Min</button>
+            <button type="button" class="btn-preset" onclick="setEventDuration('web_wizards', 30, this)">30 Min</button>
+            <div class="admin-custom-min-wrap">
+              <input type="number" id="ww-custom-min" class="admin-custom-input" placeholder="Min" min="1" max="300" />
+              <button type="button" class="btn-preset" onclick="applyCustomDuration('web_wizards', 'ww-custom-min')">Set</button>
+            </div>
+          </div>
+
+          <!-- Control Action Buttons -->
+          <div class="admin-ctrl-grid">
+            <button type="button" class="btn-ctrl btn-ctrl-start" id="ww-btn-start" onclick="ApexTimerEngine.startTimer('web_wizards')">
+              ▶ Start Competition Timer
+            </button>
+            <button type="button" class="btn-ctrl btn-ctrl-pause" id="ww-btn-pause" onclick="ApexTimerEngine.pauseTimer('web_wizards')" style="display:none;">
+              ⏸ Pause Timer
+            </button>
+            <button type="button" class="btn-ctrl btn-ctrl-resume" id="ww-btn-resume" onclick="ApexTimerEngine.resumeTimer('web_wizards')" style="display:none;">
+              ▶ Resume Timer
+            </button>
+            <button type="button" class="btn-ctrl btn-ctrl-extra" onclick="ApexTimerEngine.addExtraTime('web_wizards', 5)">
+              +5 Min Extra
+            </button>
+            <button type="button" class="btn-ctrl btn-ctrl-extra" onclick="ApexTimerEngine.addExtraTime('web_wizards', 10)">
+              +10 Min Extra
+            </button>
+            <button type="button" class="btn-ctrl btn-ctrl-reset" onclick="confirmReset('web_wizards')">
+              ↺ Reset Timer
+            </button>
+            <button type="button" class="btn-ctrl btn-ctrl-end" onclick="confirmEnd('web_wizards')">
+              ⛔ End Competition
+            </button>
+          </div>
+
+          <!-- Live Announcement Broadcast -->
+          <div class="admin-broadcast-section">
+            <div class="admin-broadcast-header">
+              <span>📢 Broadcast Notice (Web Wizards)</span>
+            </div>
+            <input 
+              type="text" 
+              id="ww-announcement-input" 
+              class="admin-broadcast-input" 
+              placeholder="e.g. Spot theme announced: Apex Horizon. 15 minutes left!"
+              maxlength="140"
+            />
+            <div class="admin-broadcast-actions">
+              <button type="button" class="btn-broadcast" onclick="broadcastNotice('web_wizards', 'ww-announcement-input')">
+                Broadcast Notice
+              </button>
+              <button type="button" class="btn-clear-broadcast" onclick="clearNotice('web_wizards')">
+                Clear
+              </button>
+            </div>
+            <p id="ww-active-announcement" style="font-size:0.75rem; color:#818cf8; margin-top:0.5rem; display:none;"></p>
+          </div>
+        </article>
+
+
+        <!-- ───────────────────────────────────────────────
+             PANEL 2: DIGITAL IDENTITY EVENT HEAD
+             ─────────────────────────────────────────────── -->
+        <article class="admin-panel-card design-panel">
+          <div class="admin-panel-header">
+            <div class="admin-panel-title-group">
+              <div class="admin-panel-icon design">🎨</div>
+              <div>
+                <h3 class="admin-panel-title">Digital Identity</h3>
+                <span class="admin-panel-subtitle">Logo Designing Competition (Canva/Google Slides)</span>
+              </div>
+            </div>
+            <span class="admin-state-pill ready" id="di-pill">● READY</span>
+          </div>
+
+          <!-- Official Clock Display -->
+          <div class="admin-clock-box">
+            <div class="admin-clock-digits" id="di-clock">60:00</div>
+            <div class="admin-clock-meta" id="di-meta">Total: 60m | Status: READY</div>
+          </div>
+
+          <!-- Preset Duration Selection -->
+          <div class="admin-preset-row">
+            <span class="admin-preset-label">Duration:</span>
+            <button type="button" class="btn-preset active" onclick="setEventDuration('digital_identity', 60, this)">60 Min</button>
+            <button type="button" class="btn-preset" onclick="setEventDuration('digital_identity', 45, this)">45 Min</button>
+            <button type="button" class="btn-preset" onclick="setEventDuration('digital_identity', 30, this)">30 Min</button>
+            <button type="button" class="btn-preset" onclick="setEventDuration('digital_identity', 15, this)">15 Min</button>
+            <div class="admin-custom-min-wrap">
+              <input type="number" id="di-custom-min" class="admin-custom-input" placeholder="Min" min="1" max="300" />
+              <button type="button" class="btn-preset" onclick="applyCustomDuration('digital_identity', 'di-custom-min')">Set</button>
+            </div>
+          </div>
+
+          <!-- Control Action Buttons -->
+          <div class="admin-ctrl-grid">
+            <button type="button" class="btn-ctrl btn-ctrl-start" id="di-btn-start" onclick="ApexTimerEngine.startTimer('digital_identity')">
+              ▶ Start Competition Timer
+            </button>
+            <button type="button" class="btn-ctrl btn-ctrl-pause" id="di-btn-pause" onclick="ApexTimerEngine.pauseTimer('digital_identity')" style="display:none;">
+              ⏸ Pause Timer
+            </button>
+            <button type="button" class="btn-ctrl btn-ctrl-resume" id="di-btn-resume" onclick="ApexTimerEngine.resumeTimer('digital_identity')" style="display:none;">
+              ▶ Resume Timer
+            </button>
+            <button type="button" class="btn-ctrl btn-ctrl-extra" onclick="ApexTimerEngine.addExtraTime('digital_identity', 5)">
+              +5 Min Extra
+            </button>
+            <button type="button" class="btn-ctrl btn-ctrl-extra" onclick="ApexTimerEngine.addExtraTime('digital_identity', 10)">
+              +10 Min Extra
+            </button>
+            <button type="button" class="btn-ctrl btn-ctrl-reset" onclick="confirmReset('digital_identity')">
+              ↺ Reset Timer
+            </button>
+            <button type="button" class="btn-ctrl btn-ctrl-end" onclick="confirmEnd('digital_identity')">
+              ⛔ End Competition
+            </button>
+          </div>
+
+          <!-- Live Announcement Broadcast -->
+          <div class="admin-broadcast-section">
+            <div class="admin-broadcast-header">
+              <span>📢 Broadcast Notice (Digital Identity)</span>
+            </div>
+            <input 
+              type="text" 
+              id="di-announcement-input" 
+              class="admin-broadcast-input" 
+              placeholder="e.g. Dimensions must be 800x800px. 10 minutes left!"
+              maxlength="140"
+            />
+            <div class="admin-broadcast-actions">
+              <button type="button" class="btn-broadcast" onclick="broadcastNotice('digital_identity', 'di-announcement-input')">
+                Broadcast Notice
+              </button>
+              <button type="button" class="btn-clear-broadcast" onclick="clearNotice('digital_identity')">
+                Clear
+              </button>
+            </div>
+            <p id="di-active-announcement" style="font-size:0.75rem; color:#fbbf24; margin-top:0.5rem; display:none;"></p>
+          </div>
+        </article>
+
+      </div>
+
+      <!-- ═══ 3. SECURITY & ACTIVITY AUDIT LOG ═══ -->
+      <section class="admin-audit-section">
+        <div class="admin-audit-header">
+          <div class="admin-audit-title">
+            <span>🛡️ Activity &amp; Security Audit Trail</span>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="clearAuditLog()" style="padding: 0.25rem 0.6rem; font-size: 0.72rem;">
+            Clear Audit Trail
+          </button>
+        </div>
+        <div class="admin-audit-list" id="auditLogList">
+          <!-- Populated dynamically -->
+        </div>
+      </section>
+
+      <!-- Quick Links Section -->
+      <div style="background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius-md); padding: 1.5rem; margin-top: 2rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+        <div>
+          <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-highlight); margin-bottom: 0.2rem;">
+            📁 Google Drive Evaluation Folders
+          </h4>
+          <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">
+            Direct links to submissions collected during the fest.
+          </p>
+        </div>
+        <div style="display: flex; gap: 0.65rem; flex-wrap: wrap;">
+          <a href="https://drive.google.com/drive/folders/1nmUjbjrtedhGwCT0Xrni-xKUypUVvZal" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">
+            Web Wizards Submissions ↗
+          </a>
+          <a href="https://drive.google.com/drive/folders/12ogVi0XadV9FEUv8gXo6d3zw6srrhKFx" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">
+            Digital Identity Submissions ↗
+          </a>
+          <a href="index.html" class="btn btn-secondary btn-sm">
+            &larr; Portal Home
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ═══ CHANGE PASSCODE MODAL ═══ -->
+  <div class="security-modal-overlay" id="changePasscodeModal">
+    <div class="security-modal-card">
+      <h3 class="security-modal-title">Change Event Heads Passcode</h3>
+      <p class="security-modal-sub">
+        Update your administrative passcode. Minimum 6 characters required.
+      </p>
+
+      <form onsubmit="handleChangePasscodeSubmit(event)">
+        <div style="margin-bottom: 1rem;">
+          <label style="display:block; font-size:0.78rem; font-weight:700; color:var(--text-secondary); margin-bottom:0.35rem;">Current Passcode</label>
+          <input type="password" id="currentPasscode" class="admin-pin-input" required style="font-size:0.95rem; letter-spacing:0.1em; text-align:left;" />
+        </div>
+
+        <div style="margin-bottom: 1rem;">
+          <label style="display:block; font-size:0.78rem; font-weight:700; color:var(--text-secondary); margin-bottom:0.35rem;">New Passcode (Min 6 chars)</label>
+          <input type="password" id="newPasscode" class="admin-pin-input" minlength="6" required style="font-size:0.95rem; letter-spacing:0.1em; text-align:left;" />
+        </div>
+
+        <div style="margin-bottom: 1.4rem;">
+          <label style="display:block; font-size:0.78rem; font-weight:700; color:var(--text-secondary); margin-bottom:0.35rem;">Confirm New Passcode</label>
+          <input type="password" id="confirmNewPasscode" class="admin-pin-input" minlength="6" required style="font-size:0.95rem; letter-spacing:0.1em; text-align:left;" />
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:0.6rem;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closeChangePasscodeModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Update Passcode</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Simplified Minimal Footer -->
+  <footer class="portal-footer">
+    <div class="container portal-footer-inner" style="justify-content: space-between; text-align: center; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        &copy; 2026 GNE'S APEX &bull; Event Heads Console &bull; Guru Nanak Dev Engineering College, Ludhiana
+      </div>
+      <div>
+        <span style="font-size: 0.74rem; color: var(--text-muted);">
+          Protected with cryptographic SHA-256 session guards.
+        </span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="script.js"></script>
+
+  <script>
+    let lockoutInterval = null;
+
+    // Check rate-limit & lockout status on load
+    function checkLockout() {
+      const status = ApexSecurity.getRateLimitStatus();
+      const banner = document.getElementById('lockoutBanner');
+      const submitBtn = document.getElementById('loginSubmitBtn');
+      const input = document.getElementById('adminPasscode');
+      const warning = document.getElementById('attemptsWarning');
+
+      if (status.locked) {
+        banner.classList.add('active');
+        submitBtn.disabled = true;
+        input.disabled = true;
+        warning.classList.remove('active');
+
+        let secondsLeft = status.lockoutSeconds;
+        const msgEl = document.getElementById('lockoutMsg');
+        msgEl.textContent = `Too many failed attempts. Console locked for security. Try again in ${secondsLeft}s.`;
+
+        clearInterval(lockoutInterval);
+        lockoutInterval = setInterval(() => {
+          secondsLeft--;
+          if (secondsLeft <= 0) {
+            clearInterval(lockoutInterval);
+            banner.classList.remove('active');
+            submitBtn.disabled = false;
+            input.disabled = false;
+            input.focus();
+            checkLockout();
+          } else {
+            msgEl.textContent = `Too many failed attempts. Console locked for security. Try again in ${secondsLeft}s.`;
+          }
+        }, 1000);
+      } else {
+        banner.classList.remove('active');
+        submitBtn.disabled = false;
+        input.disabled = false;
+        if (status.remainingAttempts < 5) {
+          warning.textContent = `⚠️ Warning: ${status.remainingAttempts} attempts remaining before temporary lockout.`;
+          warning.classList.add('active');
+        } else {
+          warning.classList.remove('active');
+        }
+      }
+    }
+
+    async function checkAuth() {
+      const isAuth = await ApexSecurity.verifySession();
+      const authGate = document.getElementById('authGate');
+      const dashboard = document.getElementById('adminDashboard');
+      const logoutBtn = document.getElementById('logoutBtn');
+      const sessionPill = document.getElementById('securitySessionPill');
+      const changePassBtn = document.getElementById('btnOpenChangePass');
+
+      if (isAuth) {
+        authGate.style.display = 'none';
+        dashboard.style.display = 'block';
+        logoutBtn.style.display = 'inline-flex';
+        sessionPill.style.display = 'inline-flex';
+        changePassBtn.style.display = 'inline-flex';
+        ApexTimerEngine.bindAdminUI();
+        renderAuditLogs();
+      } else {
+        authGate.style.display = 'flex';
+        dashboard.style.display = 'none';
+        logoutBtn.style.display = 'none';
+        sessionPill.style.display = 'none';
+        changePassBtn.style.display = 'none';
+        checkLockout();
+      }
+    }
+
+    async function handleAdminLogin(e) {
+      e.preventDefault();
+      const input = document.getElementById('adminPasscode');
+      const pin = input.value;
+      if (!pin) return;
+
+      const res = await ApexSecurity.authenticate(pin);
+      if (res.success) {
+        input.value = '';
+        checkAuth();
+      } else {
+        if (res.locked) {
+          alert(`⛔ Security Alert: Console locked for ${res.lockoutSeconds} seconds due to repeated failed attempts.`);
+        } else {
+          alert(`❌ Access Denied: Invalid security passcode. (${res.remainingAttempts} attempts remaining).`);
+        }
+        input.value = '';
+        checkLockout();
+      }
+    }
+
+    function handleLogout() {
+      ApexSecurity.destroySession('Logged out by user');
+      checkAuth();
+    }
+
+    function togglePasscodeVisibility() {
+      const input = document.getElementById('adminPasscode');
+      const btn = document.getElementById('togglePinBtn');
+      if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = '🔒';
+      } else {
+        input.type = 'password';
+        btn.textContent = '👁️';
+      }
+    }
+
+    // Modal Passcode Change
+    function openChangePasscodeModal() {
+      document.getElementById('changePasscodeModal').classList.add('open');
+      document.getElementById('currentPasscode').value = '';
+      document.getElementById('newPasscode').value = '';
+      document.getElementById('confirmNewPasscode').value = '';
+    }
+
+    function closeChangePasscodeModal() {
+      document.getElementById('changePasscodeModal').classList.remove('open');
+    }
+
+    async function handleChangePasscodeSubmit(e) {
+      e.preventDefault();
+      const oldPin = document.getElementById('currentPasscode').value;
+      const newPin = document.getElementById('newPasscode').value;
+      const confirmPin = document.getElementById('confirmNewPasscode').value;
+
+      if (newPin !== confirmPin) {
+        alert('Validation error: New passcode and confirmation do not match.');
+        return;
+      }
+
+      const res = await ApexSecurity.changePasscode(oldPin, newPin);
+      if (res.success) {
+        alert('✓ Passcode updated successfully! Please keep it confidential.');
+        closeChangePasscodeModal();
+        renderAuditLogs();
+      } else {
+        alert('❌ Error: ' + res.message);
+      }
+    }
+
+    // Render Security Audit Log
+    function renderAuditLogs() {
+      const container = document.getElementById('auditLogList');
+      if (!container) return;
+      const logs = ApexSecurity.getAuditLogs();
+      if (logs.length === 0) {
+        container.innerHTML = '<div style="font-size:0.8rem; color:var(--text-muted); padding:0.5rem;">No recent administrative events logged.</div>';
+        return;
+      }
+      container.innerHTML = logs.map(l => `
+        <div class="audit-item">
+          <span class="audit-item-time">${l.time}</span>
+          <span class="audit-item-desc">${l.text}</span>
+          <span class="audit-tag ${l.type}">${l.type}</span>
+        </div>
+      `).join('');
+    }
+    window.renderAuditLogs = renderAuditLogs;
+
+    function clearAuditLog() {
+      sessionStorage.removeItem('apex_audit_logs');
+      renderAuditLogs();
+    }
+
+    // Event Heads Actions
+    async function setEventDuration(eventKey, minutes, btn) {
+      if (confirm(`Set duration for ${eventKey === 'web_wizards' ? 'Web Wizards' : 'Digital Identity'} to ${minutes} minutes? This will reset the timer to standby.`)) {
+        const ok = await ApexTimerEngine.setDuration(eventKey, minutes);
+        if (ok && btn && btn.parentElement) {
+          btn.parentElement.querySelectorAll('.btn-preset').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+        }
+      }
+    }
+
+    async function applyCustomDuration(eventKey, inputId) {
+      const val = parseInt(document.getElementById(inputId).value, 10);
+      if (isNaN(val) || val <= 0) {
+        alert('Please enter a valid number of minutes (e.g. 75).');
+        return;
+      }
+      setEventDuration(eventKey, val);
+    }
+
+    async function confirmReset(eventKey) {
+      const name = eventKey === 'web_wizards' ? 'Web Wizards' : 'Digital Identity';
+      if (confirm(`Reset the ${name} timer back to its initial time?`)) {
+        await ApexTimerEngine.resetTimer(eventKey);
+      }
+    }
+
+    async function confirmEnd(eventKey) {
+      const name = eventKey === 'web_wizards' ? 'Web Wizards' : 'Digital Identity';
+      if (confirm(`⚠️ WARNING: Are you sure you want to officially END the ${name} competition now? Participants will be instructed to proceed to submission immediately.`)) {
+        await ApexTimerEngine.endTimer(eventKey);
+      }
+    }
+
+    async function broadcastNotice(eventKey, inputId) {
+      const input = document.getElementById(inputId);
+      const text = input.value.trim();
+      if (!text) {
+        alert('Please enter a notice message to broadcast.');
+        return;
+      }
+      const ok = await ApexTimerEngine.setAnnouncement(eventKey, text);
+      if (ok) {
+        alert('Announcement broadcasted! It is now visible on participant theme pages.');
+      }
+    }
+
+    async function clearNotice(eventKey) {
+      await ApexTimerEngine.clearAnnouncement(eventKey);
+      const inputId = eventKey === 'web_wizards' ? 'ww-announcement-input' : 'di-announcement-input';
+      document.getElementById(inputId).value = '';
+    }
+
+    // Idle monitoring (15 min auto-lockout)
+    let idleTimer = null;
+    function resetIdleTimer() {
+      clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        if (sessionStorage.getItem('apex_admin_session')) {
+          ApexSecurity.destroySession('Inactivity timeout (15 minutes)');
+          alert('🔒 Session timed out after 15 minutes of inactivity for security.');
+          checkAuth();
+        }
+      }, 15 * 60 * 1000);
+    }
+
+    ['mousemove', 'keydown', 'touchstart', 'scroll'].forEach(evt => {
+      window.addEventListener(evt, resetIdleTimer, { passive: true });
+    });
+    resetIdleTimer();
+
+    // Auto-check on DOM ready
+    document.addEventListener('DOMContentLoaded', () => {
+      checkAuth();
+    });
+  </script>
+</body>
+</html>

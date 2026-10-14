@@ -932,3 +932,701 @@ window.closePreviewModal = closePreviewModal;
 window.clearUploadForm = clearUploadForm;
 window.handleCuriousUpload = handleCuriousUpload;
 
+/* ==========================================================================
+   APEX SECURITY & ACCESS CONTROL SYSTEM
+   Guru Nanak Dev Engineering College, Ludhiana | Causmic Club
+   ========================================================================== */
+
+const ApexSecurity = (() => {
+  const SALT = 'GNE_APEX_2026_SALT_';
+  // Salted SHA-256 hash of 'apex2026'
+  const DEFAULT_HASH = '17a45908cd724ef57309f0e6146179819ec3c6196d58899d5840651c2f29f942';
+  const ADMIN_API_KEY = 'APEX_2026_HEAD_KEY_98f12c8b74';
+  const MAX_ATTEMPTS = 5;
+  const LOCKOUT_MS = 60 * 1000; // 60 seconds
+  const EXTENDED_LOCKOUT_MS = 300 * 1000; // 5 minutes
+  const SESSION_IDLE_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
+
+  // Compute SHA-256 via Web Crypto
+  async function sha256(text) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(text);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  function getStoredHash() {
+    return localStorage.getItem('apex_custom_passcode_hash') || DEFAULT_HASH;
+  }
+
+  // Rate Limiting (Brute-Force Shield)
+  function getRateLimitStatus() {
+    const raw = localStorage.getItem('apex_login_limiter');
+    const now = Date.now();
+    if (!raw) return { locked: false, remainingAttempts: MAX_ATTEMPTS, lockoutSeconds: 0 };
+    try {
+      const data = JSON.parse(raw);
+      if (data.lockedUntil && data.lockedUntil > now) {
+        return {
+          locked: true,
+          remainingAttempts: 0,
+          lockoutSeconds: Math.ceil((data.lockedUntil - now) / 1000)
+        };
+      }
+      if (data.lockedUntil && data.lockedUntil <= now) {
+        localStorage.removeItem('apex_login_limiter');
+        return { locked: false, remainingAttempts: MAX_ATTEMPTS, lockoutSeconds: 0 };
+      }
+      const attempts = data.failedAttempts || 0;
+      return {
+        locked: false,
+        remainingAttempts: Math.max(0, MAX_ATTEMPTS - attempts),
+        lockoutSeconds: 0
+      };
+    } catch (e) {
+      return { locked: false, remainingAttempts: MAX_ATTEMPTS, lockoutSeconds: 0 };
+    }
+  }
+
+  function recordFailedLogin() {
+    const now = Date.now();
+    let data = { failedAttempts: 0, lockoutCount: 0, lockedUntil: 0 };
+    try {
+      const raw = localStorage.getItem('apex_login_limiter');
+      if (raw) data = JSON.parse(raw);
+    } catch (e) {}
+
+    data.failedAttempts = (data.failedAttempts || 0) + 1;
+    logAudit('auth', `Failed login attempt #${data.failedAttempts}`);
+
+    if (data.failedAttempts >= MAX_ATTEMPTS) {
+      data.lockoutCount = (data.lockoutCount || 0) + 1;
+      const duration = data.lockoutCount > 1 ? EXTENDED_LOCKOUT_MS : LOCKOUT_MS;
+      data.lockedUntil = now + duration;
+      localStorage.setItem('apex_login_limiter', JSON.stringify(data));
+      logAudit('auth', `Rate limit triggered: Console locked for ${duration / 1000}s`);
+      return { locked: true, lockoutSeconds: duration / 1000 };
+    }
+
+    localStorage.setItem('apex_login_limiter', JSON.stringify(data));
+    return { locked: false, remainingAttempts: MAX_ATTEMPTS - data.failedAttempts };
+  }
+
+  function recordSuccessLogin() {
+    localStorage.removeItem('apex_login_limiter');
+  }
+
+  // Session Management (Cryptographic Token + Inactivity Expiration)
+  async function createSession(passcode) {
+    const tokenBytes = new Uint8Array(20);
+    crypto.getRandomValues(tokenBytes);
+    const token = Array.from(tokenBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    const now = Date.now();
+    const signature = await sha256(token + ':' + now + ':' + SALT);
+    const session = {
+      token,
+      loginTime: now,
+      lastActive: now,
+      signature
+    };
+    sessionStorage.setItem('apex_admin_session', JSON.stringify(session));
+    recordSuccessLogin();
+    logAudit('auth', 'Event Head authenticated successfully');
+    return session;
+  }
+
+  async function verifySession() {
+    const raw = sessionStorage.getItem('apex_admin_session');
+    if (!raw) return false;
+    try {
+      const session = JSON.parse(raw);
+      if (!session || !session.token || !session.signature) return false;
+
+      // Inactivity timeout (15 min)
+      const now = Date.now();
+      if (now - (session.lastActive || session.loginTime) > SESSION_IDLE_TIMEOUT_MS) {
+        destroySession('Session timed out due to 15 minutes of inactivity.');
+        return false;
+      }
+
+      // Cryptographic signature check (prevents tampering)
+      const expectedSignature = await sha256(session.token + ':' + session.loginTime + ':' + SALT);
+      if (session.signature !== expectedSignature) {
+        destroySession('Security violation: Tampered session detected.');
+        return false;
+      }
+
+      // Update activity timestamp
+      session.lastActive = now;
+      sessionStorage.setItem('apex_admin_session', JSON.stringify(session));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function destroySession(reason = '') {
+    sessionStorage.removeItem('apex_admin_session');
+    if (reason) logAudit('auth', `Session ended: ${reason}`);
+  }
+
+  // Authentication
+  async function authenticate(enteredPin) {
+    const status = getRateLimitStatus();
+    if (status.locked) {
+      return { success: false, locked: true, lockoutSeconds: status.lockoutSeconds };
+    }
+
+    const hash = await sha256(SALT + enteredPin.trim());
+    if (hash === getStoredHash()) {
+      const session = await createSession(enteredPin);
+      return { success: true, session };
+    } else {
+      const failStatus = recordFailedLogin();
+      return {
+        success: false,
+        locked: failStatus.locked,
+        remainingAttempts: failStatus.remainingAttempts,
+        lockoutSeconds: failStatus.lockoutSeconds
+      };
+    }
+  }
+
+  // Change Passcode
+  async function changePasscode(oldPin, newPin) {
+    if (!await verifySession()) {
+      return { success: false, message: 'Unauthorized session. Please login again.' };
+    }
+    const oldHash = await sha256(SALT + oldPin.trim());
+    if (oldHash !== getStoredHash()) {
+      return { success: false, message: 'Current passcode is incorrect.' };
+    }
+    if (!newPin || newPin.trim().length < 6) {
+      return { success: false, message: 'New passcode must be at least 6 characters long.' };
+    }
+    const newHash = await sha256(SALT + newPin.trim());
+    localStorage.setItem('apex_custom_passcode_hash', newHash);
+    logAudit('auth', 'Event Head changed console passcode');
+    return { success: true };
+  }
+
+  // Security Audit Logging
+  function logAudit(type, text) {
+    try {
+      const logs = JSON.parse(sessionStorage.getItem('apex_audit_logs') || '[]');
+      const entry = {
+        time: new Date().toLocaleTimeString(),
+        type: type,
+        text: text
+      };
+      logs.unshift(entry);
+      if (logs.length > 50) logs.pop();
+      sessionStorage.setItem('apex_audit_logs', JSON.stringify(logs));
+
+      if (window.renderAuditLogs) window.renderAuditLogs();
+    } catch (e) {}
+  }
+
+  function getAuditLogs() {
+    try {
+      return JSON.parse(sessionStorage.getItem('apex_audit_logs') || '[]');
+    } catch (e) {
+      return [];
+    }
+  }
+
+  return {
+    sha256,
+    authenticate,
+    verifySession,
+    destroySession,
+    getRateLimitStatus,
+    changePasscode,
+    logAudit,
+    getAuditLogs,
+    ADMIN_API_KEY
+  };
+})();
+
+window.ApexSecurity = ApexSecurity;
+
+/* ==========================================================================
+   APEX REAL-TIME CENTRALIZED TIMER ENGINE (SECURE & SYNCED)
+   ========================================================================== */
+
+const ApexTimerEngine = (() => {
+  const DEFAULT_CONFIGS = {
+    web_wizards: {
+      name: 'Web Wizards',
+      defaultSeconds: 90 * 60, // 90 minutes
+      storageKey: 'apex_timer_web_wizards'
+    },
+    digital_identity: {
+      name: 'Digital Identity',
+      defaultSeconds: 60 * 60, // 60 minutes
+      storageKey: 'apex_timer_digital_identity'
+    }
+  };
+
+  // BroadcastChannel for sub-millisecond tab-to-tab sync
+  const channel = (typeof BroadcastChannel !== 'undefined') ? new BroadcastChannel('apex_timer_bus') : null;
+
+  // Initialize or load state from localStorage
+  function loadState(eventKey) {
+    const cfg = DEFAULT_CONFIGS[eventKey];
+    if (!cfg) return null;
+    const raw = localStorage.getItem(cfg.storageKey);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed.remainingSeconds === 'number') {
+          return parsed;
+        }
+      } catch (e) {
+        console.error('Failed to parse timer state for', eventKey, e);
+      }
+    }
+    // Default initial state
+    const initial = {
+      event: cfg.name,
+      status: 'ready', // 'ready' | 'running' | 'paused' | 'ended'
+      totalSeconds: cfg.defaultSeconds,
+      remainingSeconds: cfg.defaultSeconds,
+      endTime: null,
+      pausedAt: null,
+      announcement: '',
+      lastUpdated: Date.now()
+    };
+    saveState(eventKey, initial, false);
+    return initial;
+  }
+
+  function saveState(eventKey, state, broadcast = true) {
+    const cfg = DEFAULT_CONFIGS[eventKey];
+    if (!cfg) return;
+    state.lastUpdated = Date.now();
+    localStorage.setItem(cfg.storageKey, JSON.stringify(state));
+    if (broadcast && channel) {
+      channel.postMessage({
+        type: 'APEX_TIMER_SYNC',
+        eventKey: eventKey,
+        state: state
+      });
+    }
+    // Async cloud sync (protected with ADMIN_API_KEY)
+    syncStateToCloud(eventKey, state);
+  }
+
+  // Format seconds into MM:SS or HH:MM:SS
+  function formatSeconds(sec) {
+    const s = Math.max(0, Math.floor(sec));
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const remainingS = s % 60;
+    if (h > 0) {
+      return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(remainingS).padStart(2, '0')}`;
+    }
+    return `${String(m).padStart(2, '0')}:${String(remainingS).padStart(2, '0')}`;
+  }
+
+  // Compute live remaining seconds
+  function getLiveRemaining(state) {
+    if (!state) return 0;
+    if (state.status === 'running' && state.endTime) {
+      const diff = Math.round((state.endTime - Date.now()) / 1000);
+      return Math.max(0, diff);
+    }
+    return state.remainingSeconds;
+  }
+
+  // Protected Admin Controls (All mutations enforce cryptographic session verification)
+  async function setDuration(eventKey, minutes) {
+    if (!await ApexSecurity.verifySession()) {
+      console.warn('Security Alert: Unauthorized setDuration attempt blocked.');
+      return false;
+    }
+    const state = loadState(eventKey);
+    const sec = Math.max(1, Math.round(minutes * 60));
+    state.totalSeconds = sec;
+    state.remainingSeconds = sec;
+    state.status = 'ready';
+    state.endTime = null;
+    state.pausedAt = null;
+    saveState(eventKey, state);
+    ApexSecurity.logAudit('reset', `${state.event}: Duration set to ${minutes}m`);
+    updateAllUI();
+    return true;
+  }
+
+  async function startTimer(eventKey) {
+    if (!await ApexSecurity.verifySession()) {
+      console.warn('Security Alert: Unauthorized startTimer attempt blocked.');
+      return false;
+    }
+    const state = loadState(eventKey);
+    state.status = 'running';
+    state.endTime = Date.now() + (state.remainingSeconds * 1000);
+    state.pausedAt = null;
+    saveState(eventKey, state);
+    ApexSecurity.logAudit('start', `${state.event}: Timer Started`);
+    updateAllUI();
+    return true;
+  }
+
+  async function pauseTimer(eventKey) {
+    if (!await ApexSecurity.verifySession()) {
+      console.warn('Security Alert: Unauthorized pauseTimer attempt blocked.');
+      return false;
+    }
+    const state = loadState(eventKey);
+    if (state.status !== 'running') return false;
+    state.remainingSeconds = getLiveRemaining(state);
+    state.status = 'paused';
+    state.endTime = null;
+    state.pausedAt = Date.now();
+    saveState(eventKey, state);
+    ApexSecurity.logAudit('pause', `${state.event}: Timer Paused (${formatSeconds(state.remainingSeconds)} left)`);
+    updateAllUI();
+    return true;
+  }
+
+  async function resumeTimer(eventKey) {
+    if (!await ApexSecurity.verifySession()) {
+      console.warn('Security Alert: Unauthorized resumeTimer attempt blocked.');
+      return false;
+    }
+    const state = loadState(eventKey);
+    if (state.status !== 'paused') return false;
+    state.status = 'running';
+    state.endTime = Date.now() + (state.remainingSeconds * 1000);
+    state.pausedAt = null;
+    saveState(eventKey, state);
+    ApexSecurity.logAudit('start', `${state.event}: Timer Resumed`);
+    updateAllUI();
+    return true;
+  }
+
+  async function addExtraTime(eventKey, minutes) {
+    if (!await ApexSecurity.verifySession()) {
+      console.warn('Security Alert: Unauthorized addExtraTime attempt blocked.');
+      return false;
+    }
+    const state = loadState(eventKey);
+    const extraSec = Math.round(minutes * 60);
+    state.remainingSeconds += extraSec;
+    state.totalSeconds += extraSec;
+    if (state.status === 'running' && state.endTime) {
+      state.endTime += extraSec * 1000;
+    }
+    saveState(eventKey, state);
+    ApexSecurity.logAudit('notice', `${state.event}: +${minutes}m extra time added`);
+    updateAllUI();
+    return true;
+  }
+
+  async function resetTimer(eventKey) {
+    if (!await ApexSecurity.verifySession()) {
+      console.warn('Security Alert: Unauthorized resetTimer attempt blocked.');
+      return false;
+    }
+    const state = loadState(eventKey);
+    state.status = 'ready';
+    state.remainingSeconds = state.totalSeconds;
+    state.endTime = null;
+    state.pausedAt = null;
+    saveState(eventKey, state);
+    ApexSecurity.logAudit('reset', `${state.event}: Timer Reset to initial ${Math.round(state.totalSeconds / 60)}m`);
+    updateAllUI();
+    return true;
+  }
+
+  async function endTimer(eventKey) {
+    if (!await ApexSecurity.verifySession()) {
+      console.warn('Security Alert: Unauthorized endTimer attempt blocked.');
+      return false;
+    }
+    const state = loadState(eventKey);
+    state.status = 'ended';
+    state.remainingSeconds = 0;
+    state.endTime = null;
+    state.pausedAt = Date.now();
+    saveState(eventKey, state);
+    ApexSecurity.logAudit('end', `${state.event}: Competition Officially Ended`);
+    updateAllUI();
+    return true;
+  }
+
+  async function setAnnouncement(eventKey, msg) {
+    if (!await ApexSecurity.verifySession()) {
+      console.warn('Security Alert: Unauthorized announcement attempt blocked.');
+      return false;
+    }
+    const state = loadState(eventKey);
+    state.announcement = (msg || '').trim();
+    saveState(eventKey, state);
+    ApexSecurity.logAudit('notice', `${state.event}: Notice broadcasted "${state.announcement}"`);
+    updateAllUI();
+    return true;
+  }
+
+  async function clearAnnouncement(eventKey) {
+    return await setAnnouncement(eventKey, '');
+  }
+
+  // Active UI Bindings
+  const participantBindings = [];
+  let isAdminBound = false;
+
+  function bindParticipantUI(eventKey, elements) {
+    participantBindings.push({ eventKey, elements });
+    updateParticipantUI(eventKey, elements);
+  }
+
+  function updateParticipantUI(eventKey, elements) {
+    const state = loadState(eventKey);
+    if (!state) return;
+
+    const remaining = getLiveRemaining(state);
+    const displayEl = document.getElementById(elements.displayId);
+    const badgeEl = document.getElementById(elements.statusBadgeId);
+    const announcementEl = document.getElementById(elements.announcementId);
+
+    // 1. Clock Display
+    if (displayEl) {
+      displayEl.textContent = formatSeconds(remaining);
+      displayEl.classList.remove('timer-warning', 'timer-danger', 'running', 'paused', 'ended');
+      if (state.status === 'ended' || remaining === 0) {
+        displayEl.classList.add('timer-danger', 'ended');
+      } else if (remaining <= 300 && state.status === 'running') {
+        displayEl.classList.add('timer-danger');
+      } else if (remaining <= 600 && state.status === 'running') {
+        displayEl.classList.add('timer-warning');
+      } else if (state.status === 'running') {
+        displayEl.classList.add('running');
+      } else if (state.status === 'paused') {
+        displayEl.classList.add('paused');
+      }
+    }
+
+    // 2. Status Badge
+    if (badgeEl) {
+      if (state.status === 'ready') {
+        badgeEl.textContent = `⏳ Competition Timer Standby (${formatSeconds(state.totalSeconds)}) — Controlled by Event Head`;
+        badgeEl.style.color = '#c7d2fe';
+      } else if (state.status === 'running') {
+        if (remaining <= 300) {
+          badgeEl.textContent = '🚨 Final 5 Minutes! Wrap Up & Prepare Submission';
+          badgeEl.style.color = '#fca5a5';
+        } else if (remaining <= 600) {
+          badgeEl.textContent = '⚠️ 10 Minutes Remaining!';
+          badgeEl.style.color = '#fde047';
+        } else {
+          badgeEl.textContent = '⚡ Official Competition Timer Running (Controlled by Event Head)';
+          badgeEl.style.color = '#86efac';
+        }
+      } else if (state.status === 'paused') {
+        badgeEl.textContent = '⏸️ Competition Paused by Event Head';
+        badgeEl.style.color = '#fde047';
+      } else if (state.status === 'ended' || remaining === 0) {
+        badgeEl.textContent = '🏁 Competition Closed by Event Head! Proceed to Upload';
+        badgeEl.style.color = '#fb7185';
+      }
+    }
+
+    // 3. Announcement Banner
+    if (announcementEl) {
+      if (state.announcement && state.announcement.length > 0) {
+        announcementEl.style.display = 'flex';
+        const msgText = announcementEl.querySelector('.announcement-text');
+        if (msgText) msgText.textContent = state.announcement;
+      } else {
+        announcementEl.style.display = 'none';
+      }
+    }
+  }
+
+  function bindAdminUI() {
+    isAdminBound = true;
+    updateAdminUI();
+  }
+
+  function updateAdminUI() {
+    if (!isAdminBound) return;
+
+    ['web_wizards', 'digital_identity'].forEach(eventKey => {
+      const state = loadState(eventKey);
+      if (!state) return;
+      const prefix = eventKey === 'web_wizards' ? 'ww' : 'di';
+      const remaining = getLiveRemaining(state);
+
+      // Digits
+      const clockEl = document.getElementById(`${prefix}-clock`);
+      if (clockEl) {
+        clockEl.textContent = formatSeconds(remaining);
+        clockEl.className = 'admin-clock-digits ' + state.status;
+      }
+
+      // State Pill
+      const pillEl = document.getElementById(`${prefix}-pill`);
+      if (pillEl) {
+        pillEl.className = 'admin-state-pill ' + state.status;
+        if (state.status === 'ready') pillEl.textContent = '● READY';
+        else if (state.status === 'running') pillEl.textContent = '▶ LIVE';
+        else if (state.status === 'paused') pillEl.textContent = '⏸ PAUSED';
+        else if (state.status === 'ended') pillEl.textContent = '■ ENDED';
+      }
+
+      // Meta
+      const metaEl = document.getElementById(`${prefix}-meta`);
+      if (metaEl) {
+        metaEl.textContent = `Total: ${Math.round(state.totalSeconds / 60)}m | Status: ${state.status.toUpperCase()}`;
+      }
+
+      // Button states
+      const startBtn = document.getElementById(`${prefix}-btn-start`);
+      const pauseBtn = document.getElementById(`${prefix}-btn-pause`);
+      const resumeBtn = document.getElementById(`${prefix}-btn-resume`);
+
+      if (startBtn && pauseBtn && resumeBtn) {
+        if (state.status === 'ready' || state.status === 'ended') {
+          startBtn.style.display = 'inline-flex';
+          pauseBtn.style.display = 'none';
+          resumeBtn.style.display = 'none';
+        } else if (state.status === 'running') {
+          startBtn.style.display = 'none';
+          pauseBtn.style.display = 'inline-flex';
+          resumeBtn.style.display = 'none';
+        } else if (state.status === 'paused') {
+          startBtn.style.display = 'none';
+          pauseBtn.style.display = 'none';
+          resumeBtn.style.display = 'inline-flex';
+        }
+      }
+
+      // Active Announcement status
+      const activeAnnEl = document.getElementById(`${prefix}-active-announcement`);
+      if (activeAnnEl) {
+        if (state.announcement) {
+          activeAnnEl.textContent = `Active Notice: "${state.announcement}"`;
+          activeAnnEl.style.display = 'block';
+        } else {
+          activeAnnEl.style.display = 'none';
+        }
+      }
+    });
+  }
+
+  function updateAllUI() {
+    participantBindings.forEach(b => updateParticipantUI(b.eventKey, b.elements));
+    if (isAdminBound) updateAdminUI();
+  }
+
+  // Cross-tab broadcast listener
+  if (channel) {
+    channel.onmessage = (e) => {
+      if (e.data && e.data.type === 'APEX_TIMER_SYNC') {
+        updateAllUI();
+      }
+    };
+  }
+
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'apex_timer_web_wizards' || e.key === 'apex_timer_digital_identity') {
+      updateAllUI();
+    }
+  });
+
+  // Main 1-Second Heartbeat Engine
+  setInterval(() => {
+    let stateChanged = false;
+    ['web_wizards', 'digital_identity'].forEach(eventKey => {
+      const state = loadState(eventKey);
+      if (state && state.status === 'running') {
+        const remaining = getLiveRemaining(state);
+        if (remaining <= 0) {
+          state.status = 'ended';
+          state.remainingSeconds = 0;
+          state.endTime = null;
+          saveState(eventKey, state);
+          stateChanged = true;
+        }
+      }
+    });
+    updateAllUI();
+  }, 1000);
+
+  // Background cloud synchronization
+  let lastCloudPoll = 0;
+  async function pollCloudTimers() {
+    const endpoint = getActiveGasEndpoint();
+    if (!endpoint || Date.now() - lastCloudPoll < 4000) return;
+    lastCloudPoll = Date.now();
+    try {
+      const res = await fetch(`${endpoint}?action=getTimer`, { mode: 'cors' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.status === 'success') {
+          if (data.web_wizards && data.web_wizards.lastUpdated) {
+            const local = loadState('web_wizards');
+            if (!local || data.web_wizards.lastUpdated > local.lastUpdated) {
+              localStorage.setItem(DEFAULT_CONFIGS.web_wizards.storageKey, JSON.stringify(data.web_wizards));
+            }
+          }
+          if (data.digital_identity && data.digital_identity.lastUpdated) {
+            const local = loadState('digital_identity');
+            if (!local || data.digital_identity.lastUpdated > local.lastUpdated) {
+              localStorage.setItem(DEFAULT_CONFIGS.digital_identity.storageKey, JSON.stringify(data.digital_identity));
+            }
+          }
+          updateAllUI();
+        }
+      }
+    } catch (e) {
+      // Offline fallback
+    }
+  }
+
+  async function syncStateToCloud(eventKey, state) {
+    const endpoint = getActiveGasEndpoint();
+    if (!endpoint) return;
+    try {
+      await fetch(endpoint, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'setTimer',
+          adminKey: ApexSecurity.ADMIN_API_KEY,
+          event: eventKey === 'digital_identity' ? 'Digital Identity' : 'Web Wizards',
+          timerState: state
+        })
+      });
+    } catch (e) {}
+  }
+
+  setInterval(pollCloudTimers, 5000);
+
+  return {
+    loadState,
+    formatSeconds,
+    getLiveRemaining,
+    setDuration,
+    startTimer,
+    pauseTimer,
+    resumeTimer,
+    addExtraTime,
+    resetTimer,
+    endTimer,
+    setAnnouncement,
+    clearAnnouncement,
+    bindParticipantUI,
+    bindAdminUI,
+    updateAllUI
+  };
+})();
+
+window.ApexTimerEngine = ApexTimerEngine;
+
+
+

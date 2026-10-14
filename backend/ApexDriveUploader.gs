@@ -32,6 +32,8 @@ const FOLDERS = {
   'Digital Identity': '12ogVi0XadV9FEUv8gXo6d3zw6srrhKFx'
 };
 
+const ADMIN_KEY = 'APEX_2026_HEAD_KEY_98f12c8b74';
+
 function doPost(e) {
   try {
     if (!e || !e.postData || !e.postData.contents) {
@@ -42,6 +44,25 @@ function doPost(e) {
     }
 
     const data = JSON.parse(e.postData.contents);
+
+    // Event Heads Real-Time Timer Synchronization Action (Protected by ADMIN_KEY)
+    if (data.action === 'setTimer') {
+      if (data.adminKey !== ADMIN_KEY) {
+        return ContentService.createTextOutput(JSON.stringify({
+          status: 'error',
+          message: 'Security Alert: Unauthorized timer mutation. Invalid Admin Key.'
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+      const props = PropertiesService.getScriptProperties();
+      const key = data.event === 'Digital Identity' ? 'timer_digital_identity' : 'timer_web_wizards';
+      props.setProperty(key, JSON.stringify(data.timerState));
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'success',
+        event: data.event,
+        timerState: data.timerState
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     const eventType = data.event || 'Web Wizards';
     const folderId = FOLDERS[eventType] || FOLDERS['Web Wizards'];
     
@@ -132,5 +153,15 @@ function logToSheet(folder, data, fileName, fileUrl) {
 }
 
 function doGet(e) {
+  if (e && e.parameter && e.parameter.action === 'getTimer') {
+    const props = PropertiesService.getScriptProperties();
+    const data = {
+      status: 'success',
+      web_wizards: JSON.parse(props.getProperty('timer_web_wizards') || 'null'),
+      digital_identity: JSON.parse(props.getProperty('timer_digital_identity') || 'null'),
+      serverTime: Date.now()
+    };
+    return ContentService.createTextOutput(JSON.stringify(data)).setMimeType(ContentService.MimeType.JSON);
+  }
   return ContentService.createTextOutput('GNE APEX 2026 Drive Bridge is Online & Ready.');
 }

@@ -122,25 +122,28 @@
       </div>
     </section>
 
-    <!-- ═══ 3. 90-MINUTE COUNTDOWN TIMER WIDGET ═══ -->
+    <!-- ═══ BROADCAST ANNOUNCEMENT BANNER (FROM EVENT HEAD) ═══ -->
+    <div class="participant-announcement-banner" id="participantAnnouncement" style="display:none;">
+      <div class="announcement-icon">📢</div>
+      <div class="announcement-content">
+        <h4>Official Notice from Event Head</h4>
+        <p class="announcement-text"></p>
+      </div>
+    </div>
+
+    <!-- ═══ 3. OFFICIAL COUNTDOWN TIMER WIDGET (ADMIN CONTROLLED) ═══ -->
     <section class="timer-card">
-      <span class="timer-status-badge" id="timerStatusBadge">⏱️ Timer Ready (90:00)</span>
-      <h3 class="timer-card-title">Official Countdown Clock</h3>
+      <span class="timer-status-badge" id="timerStatusBadge">⏳ Standby &mdash; Controlled by Event Head</span>
+      <h3 class="timer-card-title">Official Competition Countdown</h3>
       
       <div class="timer-display" id="timerDisplay">90:00</div>
 
-      <div class="timer-controls">
-        <button type="button" id="startTimerBtn" class="btn btn-primary" onclick="toggleTimer()">
-          <span id="btnTimerIcon">▶</span>
-          <span id="btnTimerText">Start 90-Minute Timer</span>
-        </button>
-        <button type="button" id="resetTimerBtn" class="btn btn-secondary" onclick="resetTimer()" style="display:none;">
-          ↻ Reset Timer
-        </button>
+      <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.28); border-radius: var(--radius-full); padding: 0.35rem 0.95rem; font-size: 0.76rem; font-weight: 700; color: #c7d2fe; margin-top: 0.4rem;">
+        🔒 Controlled exclusively by Event Heads
       </div>
 
       <p class="timer-note">
-        *This timer runs locally in your browser to help your team manage your 90-minute development sprint effectively.
+        *This countdown clock is synchronized in real-time by the Event Head Console. Time begins when the event head officially initiates the round.
       </p>
     </section>
 
@@ -187,101 +190,26 @@
 
   <!-- Simplified Minimal Footer -->
   <footer class="portal-footer">
-    <div class="container portal-footer-inner" style="justify-content: center; text-align: center;">
+    <div class="container portal-footer-inner" style="justify-content: space-between; text-align: center; flex-wrap: wrap; gap: 1rem;">
       <div>
         &copy; 2026 GNE'S APEX &bull; Causmic Club &bull; Guru Nanak Dev Engineering College, Ludhiana
+      </div>
+      <div>
+        <a href="admin.html" class="portal-admin-link">⚙️ Event Heads Console</a>
       </div>
     </div>
   </footer>
 
-  <!-- 90-Minute Timer Script -->
+  <!-- Scripts & Centralized Synced Timer Engine -->
+  <script src="script.js"></script>
   <script>
-    const TOTAL_SECONDS = 90 * 60; // 90 minutes = 5400 seconds
-    let remainingSeconds = TOTAL_SECONDS;
-    let timerInterval = null;
-    let isRunning = false;
-
-    const display = document.getElementById('timerDisplay');
-    const startBtn = document.getElementById('startTimerBtn');
-    const resetBtn = document.getElementById('resetTimerBtn');
-    const statusBadge = document.getElementById('timerStatusBadge');
-    const btnIcon = document.getElementById('btnTimerIcon');
-    const btnText = document.getElementById('btnTimerText');
-
-    function formatTime(sec) {
-      const m = Math.floor(sec / 60);
-      const s = sec % 60;
-      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-    }
-
-    function updateDisplay() {
-      display.textContent = formatTime(remainingSeconds);
-
-      if (remainingSeconds <= 300) { // 5 minutes
-        display.className = 'timer-display timer-danger';
-        statusBadge.textContent = '🚨 Final 5 Minutes Remaining!';
-        statusBadge.style.color = '#fca5a5';
-      } else if (remainingSeconds <= 600) { // 10 minutes
-        display.className = 'timer-display timer-warning';
-        statusBadge.textContent = '⚠️ 10 Minutes Left!';
-        statusBadge.style.color = '#fde047';
-      } else {
-        display.className = 'timer-display';
-        statusBadge.textContent = isRunning ? '⚡ Timer Running (Coding Phase)' : '⏱️ Timer Paused';
-        statusBadge.style.color = '';
-      }
-    }
-
-    function toggleTimer() {
-      if (isRunning) {
-        clearInterval(timerInterval);
-        isRunning = false;
-        btnIcon.textContent = '▶';
-        btnText.textContent = 'Resume 90-Minute Timer';
-        startBtn.classList.remove('btn-danger');
-        startBtn.classList.add('btn-primary');
-        resetBtn.style.display = 'inline-flex';
-        statusBadge.textContent = '⏸️ Timer Paused';
-      } else {
-        isRunning = true;
-        btnIcon.textContent = '⏸';
-        btnText.textContent = 'Pause Timer';
-        startBtn.classList.remove('btn-primary');
-        startBtn.classList.add('btn-secondary');
-        resetBtn.style.display = 'inline-flex';
-        statusBadge.textContent = '⚡ Timer Running (Coding Phase)';
-
-        timerInterval = setInterval(() => {
-          if (remainingSeconds > 0) {
-            remainingSeconds--;
-            updateDisplay();
-          } else {
-            clearInterval(timerInterval);
-            isRunning = false;
-            display.textContent = '00:00';
-            statusBadge.textContent = '🏁 Time Expired! Upload Your Project';
-            statusBadge.style.color = '#fb7185';
-            btnIcon.textContent = '▶';
-            btnText.textContent = 'Restart Timer';
-            alert('Time is up for Web Wizards! Please archive your project and proceed to the submission page.');
-          }
-        }, 1000);
-      }
-    }
-
-    function resetTimer() {
-      clearInterval(timerInterval);
-      isRunning = false;
-      remainingSeconds = TOTAL_SECONDS;
-      updateDisplay();
-      btnIcon.textContent = '▶';
-      btnText.textContent = 'Start 90-Minute Timer';
-      startBtn.classList.remove('btn-secondary');
-      startBtn.classList.add('btn-primary');
-      resetBtn.style.display = 'none';
-      statusBadge.textContent = '⏱️ Timer Ready (90:00)';
-      statusBadge.style.color = '';
-    }
+    document.addEventListener('DOMContentLoaded', () => {
+      ApexTimerEngine.bindParticipantUI('web_wizards', {
+        displayId: 'timerDisplay',
+        statusBadgeId: 'timerStatusBadge',
+        announcementId: 'participantAnnouncement'
+      });
+    });
   </script>
 </body>
 </html>
