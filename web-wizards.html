@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Web Wizards — Dedicated Submission Portal</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body data-event-type="Web Wizards">
+
+  <!-- Ambient Glowing Background -->
+  <div class="bg-ambient" aria-hidden="true">
+    <div class="glow-orb glow-orb-1"></div>
+    <div class="glow-orb glow-orb-2"></div>
+    <div class="glow-orb glow-orb-3"></div>
+  </div>
+  <div class="bg-grid" aria-hidden="true"></div>
+
+  <!-- ═══ TOP BRAND HEADER ═══ -->
+  <header class="portal-header">
+    <div class="container portal-nav">
+      <a href="index.html" class="portal-brand">
+        <div class="portal-logos">
+          <img src="assets/causmic-logo.png" alt="Causmic Club Logo" class="portal-logo-img" />
+          <img src="assets/gndec-logo.png" alt="GNDEC Logo" class="portal-logo-img" />
+        </div>
+        <div class="portal-brand-text">
+          <span class="portal-brand-title">GNE'S <span>APEX 2026</span></span>
+          <span class="portal-brand-sub">Causmic Club &bull; GNDEC Ludhiana</span>
+        </div>
+      </a>
+      <div class="portal-badge">
+        ◈ Official Submission Portal
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══ STEP NAVIGATION ═══ -->
+  <nav class="step-nav-bar">
+    <div class="step-container">
+      <a href="index.html" class="step-item completed">
+        <div class="step-circle">✓</div>
+        <span class="step-label">Overview &amp; Rules</span>
+      </a>
+      <div class="step-divider filled"></div>
+      <div class="step-item active">
+        <div class="step-circle">2</div>
+        <span class="step-label">File Submission</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ═══ HERO SECTION ═══ -->
+  <header class="curious-hero">
+    <div class="curious-badge">◈ Event No. 1 ◈</div>
+    <h1 class="curious-title">Web Wizards</h1>
+    <p class="curious-subtitle">Dedicated Submission Portal &mdash; Validate and upload your competition project directly to evaluation.</p>
+  </header>
+
+  <!-- ═══ MAIN CONTENT ═══ -->
+  <main class="container" style="position: relative; z-index: 1;">
+
+    <!-- ═══ SUBMISSION REQUIREMENTS SUMMARY ═══ -->
+    <section class="guidelines-card">
+      <div class="guidelines-header">
+        <div>
+          <h3>📋 Submission Rules &amp; Validation Checks</h3>
+          <p>Verify your file matches all event requirements before submitting:</p>
+        </div>
+      </div>
+
+      <div class="guidelines-grid">
+        <div class="guideline-box">
+          <div class="icon">📦</div>
+          <h4>Size Restriction</h4>
+          <p>Maximum allowed size: <strong>50 MB</strong>. Larger files will be blocked automatically.</p>
+        </div>
+
+        <div class="guideline-box">
+          <div class="icon">✅</div>
+          <h4>Accepted Formats</h4>
+          <p>Allowed extensions:</p>
+          <div class="tag-list">
+            <span class="tag-allowed">.zip</span>
+            <span class="tag-allowed">.rar</span>
+            <span class="tag-allowed">.tar.gz</span>
+            <span class="tag-allowed">.7z</span>
+          </div>
+        </div>
+
+        <div class="guideline-box">
+          <div class="icon">🚫</div>
+          <h4>Strictly Blocked</h4>
+          <p>Executable &amp; uncompressed files are rejected:</p>
+          <div class="tag-list">
+            <span class="tag-forbidden">.exe</span>
+            <span class="tag-forbidden">.bat</span>
+            <span class="tag-forbidden">.sh</span>
+            <span class="tag-forbidden">.php</span>
+          </div>
+        </div>
+
+        <div class="guideline-box">
+          <div class="icon">🏷️</div>
+          <h4>School Code Naming</h4>
+          <p>Files are automatically saved as: <code>[SchoolCode]_[FileName]</code>.</p>
+        </div>
+      </div>
+
+      <!-- Mandatory Preservation Warning -->
+      <div class="critical-warning">
+        <span style="font-size: 1.5rem; line-height: 1;">⚠️</span>
+        <div>
+          <strong>MANDATORY PRESERVATION:</strong>
+          <p style="margin-top:2px;">
+            The original image/file <strong>must NOT be deleted from your device</strong> after uploading. Keep your source design on your laptop until evaluation is finalized.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ DEDICATED UPLOAD CARD ═══ -->
+    <section class="upload-card">
+      <h2 class="upload-card-title">
+        Upload Your Web Project
+      </h2>
+
+      <!-- 1. School Code Input -->
+      <div class="form-group">
+        <label for="schoolCode">🏫 Assigned School Code *</label>
+        <input 
+          type="text" 
+          id="schoolCode" 
+          placeholder="e.g. SCH-042 or DPS-108" 
+          maxlength="30" 
+          autocomplete="off"
+          required
+        />
+        <span class="form-group-note">
+          Enter your institution's designated code. Personal names are not accepted.
+        </span>
+      </div>
+
+      <!-- 2. Drop Zone & File Selector -->
+      <div class="form-group">
+        <label>📁 Select Competition File (Max 50 MB) *</label>
+        <div class="drop-zone" id="dropZone">
+          <input 
+            type="file" 
+            id="fileInput" 
+            accept=".zip,.rar,.tar.gz,.7z"
+          />
+          <div class="drop-icon">☁️</div>
+          <div class="drop-label">Drag &amp; drop archive file here, or <span>browse</span></div>
+          <div class="drop-formats">Accepted: ZIP, RAR, TAR.GZ, 7Z &bull; Max 50 MB</div>
+          <div class="file-info-chip" id="fileInfoChip" style="display:none;"></div>
+        </div>
+      </div>
+
+      <!-- Live Computed Name Display -->
+      <div id="fileNamingBadge" class="file-naming-badge">
+        🏷️ <strong>File will be uploaded as:</strong> 
+        <span id="computedFileName"></span>
+      </div>
+
+      <!-- 3. Button Controls: Preview, Clear, Upload -->
+      <div class="button-row">
+        <button type="button" class="btn btn-secondary btn-sm" id="previewBtn" onclick="openPreviewModal()" disabled>
+          👁️ Preview File
+        </button>
+        <button type="button" class="btn-danger-outline" id="clearBtn" onclick="clearUploadForm()">
+          🗑️ Clear Selection
+        </button>
+      </div>
+
+      <div style="margin-top: 14px;">
+        <button type="button" class="btn btn-primary" id="uploadBtn" onclick="handleCuriousUpload()" style="width: 100%;">
+          <span>🚀 Upload File</span>
+        </button>
+      </div>
+
+      <!-- Progress Indicator -->
+      <div class="progress-wrap" id="progressWrap">
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-text" id="progressText">Uploading...</div>
+      </div>
+
+      <!-- Status Alert Box -->
+      <div class="status-box" id="statusBox"></div>
+    </section>
+
+    <!-- ═══ CONFIRMATION NOTE ═══ -->
+    <div class="submission-note" id="confirmationNote" style="display:none;">
+      🎉 <strong id="uploadedFileName"></strong> has been uploaded with your assigned school code only.
+    </div>
+
+    <!-- Navigation link -->
+    <div style="text-align: center; margin: 24px 0 40px;">
+      <a href="index.html" class="btn btn-secondary btn-sm">
+        &larr; Back to Portal Home
+      </a>
+    </div>
+
+  </main>
+
+  <!-- ═══ PREVIEW MODAL ═══ -->
+  <div class="modal-overlay" id="previewModal">
+    <div class="modal-content-box">
+      <div class="modal-header-bar">
+        <h3>Project Archive Preview</h3>
+        <button type="button" class="btn-close-modal" onclick="closePreviewModal()">&times;</button>
+      </div>
+      <div class="preview-body">
+        <div class="preview-media-cont" id="previewMediaContainer">
+          <!-- Dynamic media injected here -->
+        </div>
+        <div class="preview-meta-box">
+          <div><strong>Original Name:</strong> <span id="metaOrigName">-</span></div>
+          <div><strong>Uploaded As:</strong> <span id="metaTargetName" style="color:var(--accent-gold-light); font-family:var(--font-mono);">-</span></div>
+          <div><strong>File Size:</strong> <span id="metaSize">-</span></div>
+          <div><strong>MIME Type:</strong> <span id="metaType">-</span></div>
+        </div>
+        <div style="margin-top: 18px; text-align: right;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="closePreviewModal()">Close Preview</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Simplified Minimal Footer -->
+  <footer class="portal-footer">
+    <div class="container portal-footer-inner">
+      <div>
+        &copy; 2026 GNE'S APEX &bull; Causmic Club &bull; Guru Nanak Dev Engineering College, Ludhiana
+      </div>
+      <div class="portal-footer-contacts">
+        <span>Event Head: <a href="tel:9888478606">Saksham (9888478606)</a></span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="script.js"></script>
+</body>
+</html>
