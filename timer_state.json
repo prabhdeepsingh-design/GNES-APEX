@@ -1,0 +1,20 @@
+{
+  "web_wizards": {
+    "name": "Web Wizards",
+    "status": "ready",
+    "totalSeconds": 5400,
+    "remainingSeconds": 5400,
+    "endTime": null,
+    "announcement": "",
+    "lastUpdated": 1791995980035
+  },
+  "digital_identity": {
+    "name": "Digital Identity",
+    "status": "ready",
+    "totalSeconds": 3600,
+    "remainingSeconds": 3600,
+    "endTime": null,
+    "announcement": "",
+    "lastUpdated": 1791995980035
+  }
+}

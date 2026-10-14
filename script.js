@@ -1152,7 +1152,7 @@ const ApexSecurity = (() => {
 window.ApexSecurity = ApexSecurity;
 
 /* ==========================================================================
-   APEX REAL-TIME CENTRALIZED TIMER ENGINE (SECURE & SYNCED)
+   APEX REAL-TIME CENTRALIZED TIMER ENGINE (SSE STREAMING + ZERO-LAG MULTI-SYSTEM SYNC)
    ========================================================================== */
 
 const ApexTimerEngine = (() => {
@@ -1169,53 +1169,47 @@ const ApexTimerEngine = (() => {
     }
   };
 
-  // BroadcastChannel for sub-millisecond tab-to-tab sync
-  const channel = (typeof BroadcastChannel !== 'undefined') ? new BroadcastChannel('apex_timer_bus') : null;
-
-  // Initialize or load state from localStorage
-  function loadState(eventKey) {
-    const cfg = DEFAULT_CONFIGS[eventKey];
-    if (!cfg) return null;
-    const raw = localStorage.getItem(cfg.storageKey);
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed.remainingSeconds === 'number') {
-          return parsed;
-        }
-      } catch (e) {
-        console.error('Failed to parse timer state for', eventKey, e);
-      }
-    }
-    // Default initial state
-    const initial = {
-      event: cfg.name,
-      status: 'ready', // 'ready' | 'running' | 'paused' | 'ended'
-      totalSeconds: cfg.defaultSeconds,
-      remainingSeconds: cfg.defaultSeconds,
+  // In-memory timer state (synchronized with central server)
+  let timerState = {
+    web_wizards: {
+      name: 'Web Wizards',
+      status: 'ready',
+      totalSeconds: 90 * 60,
+      remainingSeconds: 90 * 60,
       endTime: null,
-      pausedAt: null,
       announcement: '',
       lastUpdated: Date.now()
-    };
-    saveState(eventKey, initial, false);
-    return initial;
-  }
-
-  function saveState(eventKey, state, broadcast = true) {
-    const cfg = DEFAULT_CONFIGS[eventKey];
-    if (!cfg) return;
-    state.lastUpdated = Date.now();
-    localStorage.setItem(cfg.storageKey, JSON.stringify(state));
-    if (broadcast && channel) {
-      channel.postMessage({
-        type: 'APEX_TIMER_SYNC',
-        eventKey: eventKey,
-        state: state
-      });
+    },
+    digital_identity: {
+      name: 'Digital Identity',
+      status: 'ready',
+      totalSeconds: 60 * 60,
+      remainingSeconds: 60 * 60,
+      endTime: null,
+      announcement: '',
+      lastUpdated: Date.now()
     }
-    // Async cloud sync (protected with ADMIN_API_KEY)
-    syncStateToCloud(eventKey, state);
+  };
+
+  // Difference between server clock and client clock (in ms)
+  let serverTimeOffset = 0;
+  let isSSEConnected = false;
+  let pollInterval = null;
+  let liveClientsCount = 0;
+
+  // BroadcastChannel for local tab fallback
+  const localChannel = (typeof BroadcastChannel !== 'undefined') ? new BroadcastChannel('apex_timer_bus') : null;
+
+  // Compute live remaining seconds
+  function getLiveRemaining(eventKey) {
+    const ev = timerState[eventKey];
+    if (!ev) return 0;
+    if (ev.status === 'running' && ev.endTime) {
+      const nowOnServer = Date.now() + serverTimeOffset;
+      const diff = Math.round((ev.endTime - nowOnServer) / 1000);
+      return Math.max(0, diff);
+    }
+    return ev.remainingSeconds;
   }
 
   // Format seconds into MM:SS or HH:MM:SS
@@ -1228,153 +1222,255 @@ const ApexTimerEngine = (() => {
       return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(remainingS).padStart(2, '0')}`;
     }
     return `${String(m).padStart(2, '0')}:${String(remainingS).padStart(2, '0')}`;
-  }
-
-  // Compute live remaining seconds
-  function getLiveRemaining(state) {
-    if (!state) return 0;
-    if (state.status === 'running' && state.endTime) {
-      const diff = Math.round((state.endTime - Date.now()) / 1000);
-      return Math.max(0, diff);
+  // Dynamic Server API URL resolution (ensures cross-device LAN and file:// compatibility)
+  function getApiBaseUrl() {
+    if (typeof window !== 'undefined' && window.location) {
+      if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+        // If loaded from our server on port 3000, relative URL works best
+        if (window.location.port === '3000' || (!window.location.port && window.location.hostname !== 'localhost')) {
+          return '';
+        }
+        // If served from another port (e.g., Live Server on 5500), connect to 3000 on the same host
+        return `${window.location.protocol}//${window.location.hostname}:3000`;
+      }
     }
-    return state.remainingSeconds;
+    // Fallback if opened via file:// or non-HTTP context:
+    const customHost = (typeof localStorage !== 'undefined') ? localStorage.getItem('apex_server_host') : null;
+    return customHost || 'http://192.168.18.10:3000';
   }
 
-  // Protected Admin Controls (All mutations enforce cryptographic session verification)
-  async function setDuration(eventKey, minutes) {
+  // Real-Time Server-Sent Events (SSE) Stream Connection
+  function initSSE() {
+    if (typeof EventSource === 'undefined') {
+      console.warn('[SSE] EventSource not supported by browser, falling back to polling.');
+      startPolling();
+      return;
+    }
+
+    try {
+      const streamUrl = `${getApiBaseUrl()}/api/timer/stream`;
+      const evtSource = new EventSource(streamUrl);
+
+      evtSource.onopen = () => {
+        isSSEConnected = true;
+        console.log('[SSE] Connected live to GNE APEX Central Timer Stream.');
+        stopPolling();
+        updateConnectionStatus(true);
+      };
+
+      evtSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          handleServerSync(data);
+        } catch (err) {
+          console.error('[SSE] Error parsing stream message:', err);
+        }
+      };
+
+      evtSource.onerror = () => {
+        if (isSSEConnected) {
+          console.warn('[SSE] Stream disconnected. Reconnecting in background & activating polling fallback...');
+        }
+        isSSEConnected = false;
+        updateConnectionStatus(false);
+        startPolling();
+      };
+    } catch (e) {
+      console.warn('[SSE] Could not establish EventSource, using polling:', e);
+      startPolling();
+    }
+  }
+
+  function handleServerSync(data) {
+    if (!data) return;
+
+    if (data.serverTime) {
+      serverTimeOffset = data.serverTime - Date.now();
+    }
+
+    if (data.state) {
+      timerState = data.state;
+      // Also cache in localStorage for instant offline load
+      localStorage.setItem('apex_timer_server_cache', JSON.stringify(timerState));
+      updateAllUI();
+    }
+
+    if (typeof data.connectedClients === 'number') {
+      liveClientsCount = data.connectedClients;
+      updateClientCounterUI(liveClientsCount);
+    }
+  }
+
+  // Fallback Polling (kicks in if SSE is temporarily disconnected)
+  function startPolling() {
+    if (pollInterval) return;
+    pollTimerOnce();
+    pollInterval = setInterval(pollTimerOnce, 2000);
+  }
+
+  function stopPolling() {
+    if (pollInterval) {
+      clearInterval(pollInterval);
+      pollInterval = null;
+    }
+  }
+
+  async function pollTimerOnce() {
+    try {
+      const res = await fetch(`${getApiBaseUrl()}/api/timer`, {
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.status === 'success') {
+          handleServerSync(data);
+          updateConnectionStatus(true);
+        }
+      }
+    } catch (e) {
+      updateConnectionStatus(false);
+    }
+  }
+
+  function updateConnectionStatus(isOnline) {
+    const badge = document.getElementById('adminSyncBadge');
+    if (badge) {
+      if (isOnline) {
+        badge.className = 'admin-sync-status';
+        badge.innerHTML = `● Central Server Synced Live (${liveClientsCount} Active)`;
+      } else {
+        badge.className = 'admin-sync-status offline';
+        badge.innerHTML = `○ Connecting to Central Server...`;
+      }
+    }
+  }
+
+  function updateClientCounterUI(count) {
+    const el = document.getElementById('connectedStudentsCount');
+    if (el) {
+      el.textContent = `${count} Live Workstations Connected`;
+    }
+    const badge = document.getElementById('adminSyncBadge');
+    if (badge && isSSEConnected) {
+      badge.innerHTML = `● Central Server Synced Live (${count} Active)`;
+    }
+  }
+
+  // Central Server Mutation Dispatcher (Used by Admin Page)
+  async function sendAdminMutation(action, eventKey, extra = {}) {
     if (!await ApexSecurity.verifySession()) {
-      console.warn('Security Alert: Unauthorized setDuration attempt blocked.');
+      alert('Security Alert: Unauthorized operation. Please log in again.');
       return false;
     }
-    const state = loadState(eventKey);
-    const sec = Math.max(1, Math.round(minutes * 60));
-    state.totalSeconds = sec;
-    state.remainingSeconds = sec;
-    state.status = 'ready';
-    state.endTime = null;
-    state.pausedAt = null;
-    saveState(eventKey, state);
-    ApexSecurity.logAudit('reset', `${state.event}: Duration set to ${minutes}m`);
-    updateAllUI();
-    return true;
+
+    try {
+      const res = await fetch(`${getApiBaseUrl()}/api/timer`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Key': ApexSecurity.ADMIN_API_KEY
+        },
+        body: JSON.stringify({
+          action,
+          eventKey,
+          adminKey: ApexSecurity.ADMIN_API_KEY,
+          ...extra
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        alert('Server error: ' + (err.message || 'Operation failed'));
+        return false;
+      }
+
+      const data = await res.json();
+      if (data && data.status === 'success' && data.state) {
+        timerState = data.state;
+        updateAllUI();
+      }
+      return true;
+    } catch (err) {
+      console.error('[Admin Mutation Error]', err);
+      // Fallback: If server is unreachable, update locally and broadcast
+      const ev = timerState[eventKey];
+      if (ev) {
+        if (action === 'start') {
+          ev.status = 'running';
+          ev.endTime = Date.now() + (ev.remainingSeconds * 1000);
+        } else if (action === 'pause') {
+          ev.remainingSeconds = getLiveRemaining(eventKey);
+          ev.status = 'paused';
+          ev.endTime = null;
+        } else if (action === 'resume') {
+          ev.status = 'running';
+          ev.endTime = Date.now() + (ev.remainingSeconds * 1000);
+        } else if (action === 'reset') {
+          ev.status = 'ready';
+          ev.remainingSeconds = ev.totalSeconds;
+          ev.endTime = null;
+        } else if (action === 'end') {
+          ev.status = 'ended';
+          ev.remainingSeconds = 0;
+          ev.endTime = null;
+        }
+        updateAllUI();
+      }
+      return true;
+    }
+  }
+
+  // Admin Control Methods
+  async function setDuration(eventKey, minutes) {
+    ApexSecurity.logAudit('reset', `${eventKey}: Duration set to ${minutes}m`);
+    return await sendAdminMutation('setDuration', eventKey, { minutes });
   }
 
   async function startTimer(eventKey) {
-    if (!await ApexSecurity.verifySession()) {
-      console.warn('Security Alert: Unauthorized startTimer attempt blocked.');
-      return false;
-    }
-    const state = loadState(eventKey);
-    state.status = 'running';
-    state.endTime = Date.now() + (state.remainingSeconds * 1000);
-    state.pausedAt = null;
-    saveState(eventKey, state);
-    ApexSecurity.logAudit('start', `${state.event}: Timer Started`);
-    updateAllUI();
-    return true;
+    ApexSecurity.logAudit('start', `${eventKey}: Timer Started`);
+    return await sendAdminMutation('start', eventKey);
   }
 
   async function pauseTimer(eventKey) {
-    if (!await ApexSecurity.verifySession()) {
-      console.warn('Security Alert: Unauthorized pauseTimer attempt blocked.');
-      return false;
-    }
-    const state = loadState(eventKey);
-    if (state.status !== 'running') return false;
-    state.remainingSeconds = getLiveRemaining(state);
-    state.status = 'paused';
-    state.endTime = null;
-    state.pausedAt = Date.now();
-    saveState(eventKey, state);
-    ApexSecurity.logAudit('pause', `${state.event}: Timer Paused (${formatSeconds(state.remainingSeconds)} left)`);
-    updateAllUI();
-    return true;
+    ApexSecurity.logAudit('pause', `${eventKey}: Timer Paused`);
+    return await sendAdminMutation('pause', eventKey);
   }
 
   async function resumeTimer(eventKey) {
-    if (!await ApexSecurity.verifySession()) {
-      console.warn('Security Alert: Unauthorized resumeTimer attempt blocked.');
-      return false;
-    }
-    const state = loadState(eventKey);
-    if (state.status !== 'paused') return false;
-    state.status = 'running';
-    state.endTime = Date.now() + (state.remainingSeconds * 1000);
-    state.pausedAt = null;
-    saveState(eventKey, state);
-    ApexSecurity.logAudit('start', `${state.event}: Timer Resumed`);
-    updateAllUI();
-    return true;
+    ApexSecurity.logAudit('start', `${eventKey}: Timer Resumed`);
+    return await sendAdminMutation('resume', eventKey);
   }
 
   async function addExtraTime(eventKey, minutes) {
-    if (!await ApexSecurity.verifySession()) {
-      console.warn('Security Alert: Unauthorized addExtraTime attempt blocked.');
-      return false;
-    }
-    const state = loadState(eventKey);
-    const extraSec = Math.round(minutes * 60);
-    state.remainingSeconds += extraSec;
-    state.totalSeconds += extraSec;
-    if (state.status === 'running' && state.endTime) {
-      state.endTime += extraSec * 1000;
-    }
-    saveState(eventKey, state);
-    ApexSecurity.logAudit('notice', `${state.event}: +${minutes}m extra time added`);
-    updateAllUI();
-    return true;
+    ApexSecurity.logAudit('notice', `${eventKey}: +${minutes}m extra time added`);
+    return await sendAdminMutation('addExtra', eventKey, { minutes });
   }
 
   async function resetTimer(eventKey) {
-    if (!await ApexSecurity.verifySession()) {
-      console.warn('Security Alert: Unauthorized resetTimer attempt blocked.');
-      return false;
-    }
-    const state = loadState(eventKey);
-    state.status = 'ready';
-    state.remainingSeconds = state.totalSeconds;
-    state.endTime = null;
-    state.pausedAt = null;
-    saveState(eventKey, state);
-    ApexSecurity.logAudit('reset', `${state.event}: Timer Reset to initial ${Math.round(state.totalSeconds / 60)}m`);
-    updateAllUI();
-    return true;
+    ApexSecurity.logAudit('reset', `${eventKey}: Timer Reset`);
+    return await sendAdminMutation('reset', eventKey);
   }
 
   async function endTimer(eventKey) {
-    if (!await ApexSecurity.verifySession()) {
-      console.warn('Security Alert: Unauthorized endTimer attempt blocked.');
-      return false;
-    }
-    const state = loadState(eventKey);
-    state.status = 'ended';
-    state.remainingSeconds = 0;
-    state.endTime = null;
-    state.pausedAt = Date.now();
-    saveState(eventKey, state);
-    ApexSecurity.logAudit('end', `${state.event}: Competition Officially Ended`);
-    updateAllUI();
-    return true;
+    ApexSecurity.logAudit('end', `${eventKey}: Competition Ended`);
+    return await sendAdminMutation('end', eventKey);
   }
 
-  async function setAnnouncement(eventKey, msg) {
-    if (!await ApexSecurity.verifySession()) {
-      console.warn('Security Alert: Unauthorized announcement attempt blocked.');
-      return false;
-    }
-    const state = loadState(eventKey);
-    state.announcement = (msg || '').trim();
-    saveState(eventKey, state);
-    ApexSecurity.logAudit('notice', `${state.event}: Notice broadcasted "${state.announcement}"`);
-    updateAllUI();
-    return true;
+  async function setAnnouncement(eventKey, text) {
+    ApexSecurity.logAudit('notice', `${eventKey}: Notice "${text}" broadcasted`);
+    return await sendAdminMutation('announcement', eventKey, { text });
   }
 
   async function clearAnnouncement(eventKey) {
-    return await setAnnouncement(eventKey, '');
+    return await sendAdminMutation('clearAnnouncement', eventKey);
   }
 
-  // Active UI Bindings
+  async function resetAllTimers() {
+    ApexSecurity.logAudit('reset', 'System Reset: All Timers restored to initial defaults');
+    return await sendAdminMutation('resetAll', 'all');
+  }
+
+  // Active UI Bindings (for participant theme pages and admin console)
   const participantBindings = [];
   let isAdminBound = false;
 
@@ -1384,10 +1480,10 @@ const ApexTimerEngine = (() => {
   }
 
   function updateParticipantUI(eventKey, elements) {
-    const state = loadState(eventKey);
-    if (!state) return;
+    const ev = timerState[eventKey];
+    if (!ev) return;
 
-    const remaining = getLiveRemaining(state);
+    const remaining = getLiveRemaining(eventKey);
     const displayEl = document.getElementById(elements.displayId);
     const badgeEl = document.getElementById(elements.statusBadgeId);
     const announcementEl = document.getElementById(elements.announcementId);
@@ -1396,25 +1492,25 @@ const ApexTimerEngine = (() => {
     if (displayEl) {
       displayEl.textContent = formatSeconds(remaining);
       displayEl.classList.remove('timer-warning', 'timer-danger', 'running', 'paused', 'ended');
-      if (state.status === 'ended' || remaining === 0) {
+      if (ev.status === 'ended' || remaining === 0) {
         displayEl.classList.add('timer-danger', 'ended');
-      } else if (remaining <= 300 && state.status === 'running') {
+      } else if (remaining <= 300 && ev.status === 'running') {
         displayEl.classList.add('timer-danger');
-      } else if (remaining <= 600 && state.status === 'running') {
+      } else if (remaining <= 600 && ev.status === 'running') {
         displayEl.classList.add('timer-warning');
-      } else if (state.status === 'running') {
+      } else if (ev.status === 'running') {
         displayEl.classList.add('running');
-      } else if (state.status === 'paused') {
+      } else if (ev.status === 'paused') {
         displayEl.classList.add('paused');
       }
     }
 
     // 2. Status Badge
     if (badgeEl) {
-      if (state.status === 'ready') {
-        badgeEl.textContent = `⏳ Competition Timer Standby (${formatSeconds(state.totalSeconds)}) — Controlled by Event Head`;
+      if (ev.status === 'ready') {
+        badgeEl.textContent = `⏳ Competition Timer Standby (${formatSeconds(ev.totalSeconds)}) — Controlled by Event Head`;
         badgeEl.style.color = '#c7d2fe';
-      } else if (state.status === 'running') {
+      } else if (ev.status === 'running') {
         if (remaining <= 300) {
           badgeEl.textContent = '🚨 Final 5 Minutes! Wrap Up & Prepare Submission';
           badgeEl.style.color = '#fca5a5';
@@ -1425,10 +1521,10 @@ const ApexTimerEngine = (() => {
           badgeEl.textContent = '⚡ Official Competition Timer Running (Controlled by Event Head)';
           badgeEl.style.color = '#86efac';
         }
-      } else if (state.status === 'paused') {
+      } else if (ev.status === 'paused') {
         badgeEl.textContent = '⏸️ Competition Paused by Event Head';
         badgeEl.style.color = '#fde047';
-      } else if (state.status === 'ended' || remaining === 0) {
+      } else if (ev.status === 'ended' || remaining === 0) {
         badgeEl.textContent = '🏁 Competition Closed by Event Head! Proceed to Upload';
         badgeEl.style.color = '#fb7185';
       }
@@ -1436,10 +1532,10 @@ const ApexTimerEngine = (() => {
 
     // 3. Announcement Banner
     if (announcementEl) {
-      if (state.announcement && state.announcement.length > 0) {
+      if (ev.announcement && ev.announcement.length > 0) {
         announcementEl.style.display = 'flex';
         const msgText = announcementEl.querySelector('.announcement-text');
-        if (msgText) msgText.textContent = state.announcement;
+        if (msgText) msgText.textContent = ev.announcement;
       } else {
         announcementEl.style.display = 'none';
       }
@@ -1455,32 +1551,33 @@ const ApexTimerEngine = (() => {
     if (!isAdminBound) return;
 
     ['web_wizards', 'digital_identity'].forEach(eventKey => {
-      const state = loadState(eventKey);
-      if (!state) return;
+      const ev = timerState[eventKey];
+      if (!ev) return;
+
       const prefix = eventKey === 'web_wizards' ? 'ww' : 'di';
-      const remaining = getLiveRemaining(state);
+      const remaining = getLiveRemaining(eventKey);
 
       // Digits
       const clockEl = document.getElementById(`${prefix}-clock`);
       if (clockEl) {
         clockEl.textContent = formatSeconds(remaining);
-        clockEl.className = 'admin-clock-digits ' + state.status;
+        clockEl.className = 'admin-clock-digits ' + ev.status;
       }
 
       // State Pill
       const pillEl = document.getElementById(`${prefix}-pill`);
       if (pillEl) {
-        pillEl.className = 'admin-state-pill ' + state.status;
-        if (state.status === 'ready') pillEl.textContent = '● READY';
-        else if (state.status === 'running') pillEl.textContent = '▶ LIVE';
-        else if (state.status === 'paused') pillEl.textContent = '⏸ PAUSED';
-        else if (state.status === 'ended') pillEl.textContent = '■ ENDED';
+        pillEl.className = 'admin-state-pill ' + ev.status;
+        if (ev.status === 'ready') pillEl.textContent = '● READY';
+        else if (ev.status === 'running') pillEl.textContent = '▶ LIVE';
+        else if (ev.status === 'paused') pillEl.textContent = '⏸ PAUSED';
+        else if (ev.status === 'ended') pillEl.textContent = '■ ENDED';
       }
 
       // Meta
       const metaEl = document.getElementById(`${prefix}-meta`);
       if (metaEl) {
-        metaEl.textContent = `Total: ${Math.round(state.totalSeconds / 60)}m | Status: ${state.status.toUpperCase()}`;
+        metaEl.textContent = `Total: ${Math.round(ev.totalSeconds / 60)}m | Status: ${ev.status.toUpperCase()}`;
       }
 
       // Button states
@@ -1489,15 +1586,15 @@ const ApexTimerEngine = (() => {
       const resumeBtn = document.getElementById(`${prefix}-btn-resume`);
 
       if (startBtn && pauseBtn && resumeBtn) {
-        if (state.status === 'ready' || state.status === 'ended') {
+        if (ev.status === 'ready' || ev.status === 'ended') {
           startBtn.style.display = 'inline-flex';
           pauseBtn.style.display = 'none';
           resumeBtn.style.display = 'none';
-        } else if (state.status === 'running') {
+        } else if (ev.status === 'running') {
           startBtn.style.display = 'none';
           pauseBtn.style.display = 'inline-flex';
           resumeBtn.style.display = 'none';
-        } else if (state.status === 'paused') {
+        } else if (ev.status === 'paused') {
           startBtn.style.display = 'none';
           pauseBtn.style.display = 'none';
           resumeBtn.style.display = 'inline-flex';
@@ -1507,8 +1604,8 @@ const ApexTimerEngine = (() => {
       // Active Announcement status
       const activeAnnEl = document.getElementById(`${prefix}-active-announcement`);
       if (activeAnnEl) {
-        if (state.announcement) {
-          activeAnnEl.textContent = `Active Notice: "${state.announcement}"`;
+        if (ev.announcement) {
+          activeAnnEl.textContent = `Active Notice: "${ev.announcement}"`;
           activeAnnEl.style.display = 'block';
         } else {
           activeAnnEl.style.display = 'none';
@@ -1522,95 +1619,38 @@ const ApexTimerEngine = (() => {
     if (isAdminBound) updateAdminUI();
   }
 
-  // Cross-tab broadcast listener
-  if (channel) {
-    channel.onmessage = (e) => {
-      if (e.data && e.data.type === 'APEX_TIMER_SYNC') {
-        updateAllUI();
-      }
-    };
-  }
-
-  window.addEventListener('storage', (e) => {
-    if (e.key === 'apex_timer_web_wizards' || e.key === 'apex_timer_digital_identity') {
-      updateAllUI();
-    }
-  });
-
-  // Main 1-Second Heartbeat Engine
+  // Smooth 1-Second Client Clock Ticker (Ensures butter-smooth countdown between SSE pushes)
   setInterval(() => {
-    let stateChanged = false;
-    ['web_wizards', 'digital_identity'].forEach(eventKey => {
-      const state = loadState(eventKey);
-      if (state && state.status === 'running') {
-        const remaining = getLiveRemaining(state);
+    let changed = false;
+    ['web_wizards', 'digital_identity'].forEach(key => {
+      const ev = timerState[key];
+      if (ev && ev.status === 'running') {
+        const remaining = getLiveRemaining(key);
         if (remaining <= 0) {
-          state.status = 'ended';
-          state.remainingSeconds = 0;
-          state.endTime = null;
-          saveState(eventKey, state);
-          stateChanged = true;
+          ev.status = 'ended';
+          ev.remainingSeconds = 0;
+          ev.endTime = null;
+          changed = true;
         }
       }
     });
     updateAllUI();
   }, 1000);
 
-  // Background cloud synchronization
-  let lastCloudPoll = 0;
-  async function pollCloudTimers() {
-    const endpoint = getActiveGasEndpoint();
-    if (!endpoint || Date.now() - lastCloudPoll < 4000) return;
-    lastCloudPoll = Date.now();
+  // Auto-connect to SSE on load
+  if (typeof window !== 'undefined') {
+    // Try restoring cached state first
     try {
-      const res = await fetch(`${endpoint}?action=getTimer`, { mode: 'cors' });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data.status === 'success') {
-          if (data.web_wizards && data.web_wizards.lastUpdated) {
-            const local = loadState('web_wizards');
-            if (!local || data.web_wizards.lastUpdated > local.lastUpdated) {
-              localStorage.setItem(DEFAULT_CONFIGS.web_wizards.storageKey, JSON.stringify(data.web_wizards));
-            }
-          }
-          if (data.digital_identity && data.digital_identity.lastUpdated) {
-            const local = loadState('digital_identity');
-            if (!local || data.digital_identity.lastUpdated > local.lastUpdated) {
-              localStorage.setItem(DEFAULT_CONFIGS.digital_identity.storageKey, JSON.stringify(data.digital_identity));
-            }
-          }
-          updateAllUI();
-        }
-      }
-    } catch (e) {
-      // Offline fallback
-    }
-  }
-
-  async function syncStateToCloud(eventKey, state) {
-    const endpoint = getActiveGasEndpoint();
-    if (!endpoint) return;
-    try {
-      await fetch(endpoint, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'setTimer',
-          adminKey: ApexSecurity.ADMIN_API_KEY,
-          event: eventKey === 'digital_identity' ? 'Digital Identity' : 'Web Wizards',
-          timerState: state
-        })
-      });
+      const cached = localStorage.getItem('apex_timer_server_cache');
+      if (cached) timerState = JSON.parse(cached);
     } catch (e) {}
-  }
 
-  setInterval(pollCloudTimers, 5000);
+    initSSE();
+  }
 
   return {
-    loadState,
-    formatSeconds,
     getLiveRemaining,
+    formatSeconds,
     setDuration,
     startTimer,
     pauseTimer,
@@ -1620,6 +1660,7 @@ const ApexTimerEngine = (() => {
     endTimer,
     setAnnouncement,
     clearAnnouncement,
+    resetAllTimers,
     bindParticipantUI,
     bindAdminUI,
     updateAllUI
@@ -1627,6 +1668,7 @@ const ApexTimerEngine = (() => {
 })();
 
 window.ApexTimerEngine = ApexTimerEngine;
+
 
 
 

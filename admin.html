@@ -91,7 +91,18 @@
 
         <div class="attempts-warning" id="attemptsWarning"></div>
 
-        <p style="font-size: 0.74rem; color: var(--text-muted); margin-top: 1.4rem; line-height: 1.45;">
+        <!-- Student URL Quick-Info Box -->
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-sm); padding: 0.8rem 1rem; margin-top: 1.2rem; text-align: left;">
+          <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; margin-bottom: 0.3rem;">
+            📡 Student Portal URL for Lab Workstations:
+          </div>
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+            <code id="gateStudentUrl" style="color: #38bdf8; font-family: monospace; font-size: 0.85rem; font-weight: 700;">http://192.168.18.10:3000</code>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="copyStudentUrl('gateStudentUrl')" style="padding: 0.2rem 0.5rem; font-size: 0.7rem;">Copy</button>
+          </div>
+        </div>
+
+        <p style="font-size: 0.74rem; color: var(--text-muted); margin-top: 1rem; line-height: 1.45;">
           🛡️ Protected by salted cryptographic hashing and automatic brute-force rate-limiting.
         </p>
       </div>
@@ -116,6 +127,38 @@
           <a href="digital-identity-theme.html" target="_blank" class="btn btn-secondary btn-sm">
             👁️ Digital Identity Theme Tab
           </a>
+        </div>
+      </div>
+
+      <!-- ═══ LAB NETWORK & REAL-TIME WORKSTATION SYNC STATUS ═══ -->
+      <div class="network-sync-banner">
+        <div class="network-sync-info">
+          <div class="network-badge-pulse">
+            <span class="pulse-dot"></span>
+            <span>Central Event Server Live (SSE Active)</span>
+          </div>
+          <div class="network-link-details">
+            <span class="network-label">Student Workstation Access URL (Share on Lab Board / Projector):</span>
+            <div class="network-url-group">
+              <code class="network-url-code" id="networkStudentUrl">http://192.168.18.10:3000</code>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="copyStudentUrl('networkStudentUrl')">
+                📋 Copy Link
+              </button>
+              <a href="http://192.168.18.10:3000" id="networkStudentLink" target="_blank" class="btn btn-secondary btn-sm">
+                ↗ Open Student Portal
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="network-sync-stats">
+          <div class="stat-pill" id="connectedStudentsPill">
+            <span class="stat-number" id="connectedStudentsCount">0</span>
+            <span class="stat-title">Live Workstations Connected</span>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="handleResetAllTimers()" style="border-color: rgba(244, 63, 94, 0.4); color: #fda4af;">
+            ↺ Reset Both Timers
+          </button>
         </div>
       </div>
 
@@ -622,9 +665,53 @@
     });
     resetIdleTimer();
 
+    // Fetch network IP info from central server
+    async function fetchNetworkInfo() {
+      try {
+        const res = await fetch('/api/network-info');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.studentUrl) {
+            const netUrlEl = document.getElementById('networkStudentUrl');
+            const netLinkEl = document.getElementById('networkStudentLink');
+            const gateUrlEl = document.getElementById('gateStudentUrl');
+            if (netUrlEl) netUrlEl.textContent = data.studentUrl;
+            if (netLinkEl) netLinkEl.href = data.studentUrl;
+            if (gateUrlEl) gateUrlEl.textContent = data.studentUrl;
+          }
+        }
+      } catch (err) {
+        console.warn('Network info endpoint unavailable:', err);
+      }
+    }
+
+    function copyStudentUrl(targetId = 'networkStudentUrl') {
+      const el = document.getElementById(targetId);
+      const urlText = el ? el.textContent.trim() : window.location.origin;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(urlText).then(() => {
+          alert('📋 Copied student URL to clipboard:\n' + urlText + '\n\nProject or share this URL on the lab board.');
+        }).catch(() => {
+          prompt('Copy the student URL below:', urlText);
+        });
+      } else {
+        prompt('Copy the student URL below:', urlText);
+      }
+    }
+
+    async function handleResetAllTimers() {
+      if (confirm('⚠️ RESET ENTIRE EVENT SYSTEM?\n\nThis will reset BOTH Web Wizards (90m) and Digital Identity (60m) timers back to initial standby state and clear all announcements.\n\nProceed?')) {
+        const ok = await ApexTimerEngine.resetAllTimers();
+        if (ok) {
+          alert('✓ System reset successfully! Timers restored to initial clean standby.');
+        }
+      }
+    }
+
     // Auto-check on DOM ready
     document.addEventListener('DOMContentLoaded', () => {
       checkAuth();
+      fetchNetworkInfo();
     });
   </script>
 </body>

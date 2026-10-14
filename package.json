@@ -1,0 +1,17 @@
+{
+  "name": "gnes-apex-2026",
+  "version": "1.0.0",
+  "description": "GNE'S APEX 2026 - Inter-School Competition Portal and Real-Time Event Engine",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test_concurrency.js"
+  },
+  "keywords": [
+    "gnes-apex",
+    "competition-portal",
+    "timer-sync"
+  ],
+  "author": "Causmic Club & GNDEC Ludhiana",
+  "license": "ISC"
+}
