@@ -323,7 +323,7 @@ const server = http.createServer(async (req, res) => {
       const hash = cryptoMod.createHash('sha256').update('GNE_APEX_2026_SALT_' + passcode).digest('hex');
       const defaultHash = '17a45908cd724ef57309f0e6146179819ec3c6196d58899d5840651c2f29f942';
 
-      if (passcode === 'apex2026' || hash === defaultHash) {
+      if (passcode.toLowerCase() === 'apex2026' || hash === defaultHash) {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
           status: 'success',

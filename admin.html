@@ -79,7 +79,7 @@
               type="password" 
               id="adminPasscode" 
               class="admin-pin-input" 
-              placeholder="ENTER PASSCODE (apex2026)" 
+              placeholder="Enter Security Passcode" 
               autocomplete="off"
               autofocus 
               required 
@@ -91,10 +91,6 @@
 
           <button type="submit" class="btn btn-primary" id="loginSubmitBtn" style="width: 100%;">
             <span>Unlock Control Center &rarr;</span>
-          </button>
-
-          <button type="button" class="btn btn-secondary btn-sm" id="btnQuickUnlock" onclick="quickUnlockMaster()" style="width: 100%; margin-top: 0.65rem; border-color: rgba(99, 102, 241, 0.45); color: #c7d2fe; display: flex; align-items: center; justify-content: center; gap: 0.45rem;">
-            <span>⚡ One-Click Event Head Unlock (Passcode: apex2026)</span>
           </button>
         </form>
 
@@ -491,19 +487,21 @@
       const changePassBtn = document.getElementById('btnOpenChangePass');
 
       if (isAuth) {
-        authGate.style.display = 'none';
-        dashboard.style.display = 'block';
-        logoutBtn.style.display = 'inline-flex';
-        sessionPill.style.display = 'inline-flex';
-        changePassBtn.style.display = 'inline-flex';
-        ApexTimerEngine.bindAdminUI();
+        if (authGate) authGate.style.display = 'none';
+        if (dashboard) dashboard.style.display = 'block';
+        if (logoutBtn) logoutBtn.style.display = 'inline-flex';
+        if (sessionPill) sessionPill.style.display = 'inline-flex';
+        if (changePassBtn) changePassBtn.style.display = 'inline-flex';
+        if (window.ApexTimerEngine && typeof ApexTimerEngine.bindAdminUI === 'function') {
+          ApexTimerEngine.bindAdminUI();
+        }
         renderAuditLogs();
       } else {
-        authGate.style.display = 'flex';
-        dashboard.style.display = 'none';
-        logoutBtn.style.display = 'none';
-        sessionPill.style.display = 'none';
-        changePassBtn.style.display = 'none';
+        if (authGate) authGate.style.display = 'flex';
+        if (dashboard) dashboard.style.display = 'none';
+        if (logoutBtn) logoutBtn.style.display = 'none';
+        if (sessionPill) sessionPill.style.display = 'none';
+        if (changePassBtn) changePassBtn.style.display = 'none';
         checkLockout();
       }
     }
@@ -511,18 +509,18 @@
     async function handleAdminLogin(e) {
       e.preventDefault();
       const input = document.getElementById('adminPasscode');
-      const pin = input.value;
+      const pin = (input.value || '').trim();
       if (!pin) return;
 
       const res = await ApexSecurity.authenticate(pin);
-      if (res.success) {
+      if (res && res.success) {
         input.value = '';
-        checkAuth();
+        await checkAuth();
       } else {
-        if (res.locked) {
+        if (res && res.locked) {
           alert(`⛔ Security Alert: Console locked for ${res.lockoutSeconds} seconds due to repeated failed attempts.`);
         } else {
-          alert(`❌ Access Denied: Invalid security passcode. (${res.remainingAttempts} attempts remaining).`);
+          alert(`❌ Access Denied: Invalid security passcode. (${(res && res.remainingAttempts !== undefined) ? res.remainingAttempts : 0} attempts remaining).`);
         }
         input.value = '';
         checkLockout();
@@ -717,18 +715,12 @@
       }
     }
 
-    async function quickUnlockMaster() {
-      const res = await ApexSecurity.authenticate('apex2026');
-      if (res && res.success) {
-        await checkAuth();
-      }
-    }
-
     // Auto-check on DOM ready
     document.addEventListener('DOMContentLoaded', async () => {
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('passcode') === 'apex2026' || urlParams.get('open') === '1' || window.location.hash === '#unlock') {
-        await ApexSecurity.authenticate('apex2026');
+      const passParam = (urlParams.get('passcode') || '').trim();
+      if (passParam) {
+        await ApexSecurity.authenticate(passParam);
       }
       await checkAuth();
       fetchNetworkInfo();

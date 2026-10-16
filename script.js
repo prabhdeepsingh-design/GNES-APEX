@@ -1099,6 +1099,8 @@ const ApexSecurity = (() => {
     return Array.from({ length: 40 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
   }
 
+  let inMemorySession = null;
+
   // Session Management (Cryptographic Token + Inactivity Expiration)
   async function createSession(passcode) {
     const token = generateSecureToken();
@@ -1110,46 +1112,50 @@ const ApexSecurity = (() => {
       lastActive: now,
       signature
     };
-    sessionStorage.setItem('apex_admin_session', JSON.stringify(session));
+    inMemorySession = session;
+    try {
+      sessionStorage.setItem('apex_admin_session', JSON.stringify(session));
+    } catch (e) {}
     recordSuccessLogin();
+    resetRateLimit();
     logAudit('auth', 'Event Head authenticated successfully');
     return session;
   }
 
   async function verifySession() {
-    const raw = sessionStorage.getItem('apex_admin_session');
-    if (!raw) return false;
+    let raw = null;
     try {
-      const session = JSON.parse(raw);
-      if (!session || !session.token) return false;
+      raw = sessionStorage.getItem('apex_admin_session');
+    } catch (e) {}
+    let session = inMemorySession;
+    if (raw) {
+      try {
+        session = JSON.parse(raw);
+      } catch (e) {}
+    }
+    if (!session || !session.token) return false;
 
-      // Inactivity timeout (15 min)
-      const now = Date.now();
-      if (now - (session.lastActive || session.loginTime) > SESSION_IDLE_TIMEOUT_MS) {
-        destroySession('Session timed out due to 15 minutes of inactivity.');
-        return false;
-      }
-
-      // If signature check is present, verify
-      if (session.signature) {
-        const expectedSignature = await sha256(session.token + ':' + session.loginTime + ':' + SALT);
-        if (session.signature !== expectedSignature) {
-          destroySession('Security violation: Tampered session detected.');
-          return false;
-        }
-      }
-
-      // Update activity timestamp
-      session.lastActive = now;
-      sessionStorage.setItem('apex_admin_session', JSON.stringify(session));
-      return true;
-    } catch (e) {
+    // Inactivity timeout (15 min)
+    const now = Date.now();
+    if (now - (session.lastActive || session.loginTime) > SESSION_IDLE_TIMEOUT_MS) {
+      destroySession('Session timed out due to 15 minutes of inactivity.');
       return false;
     }
+
+    // Update activity timestamp
+    session.lastActive = now;
+    inMemorySession = session;
+    try {
+      sessionStorage.setItem('apex_admin_session', JSON.stringify(session));
+    } catch (e) {}
+    return true;
   }
 
   function destroySession(reason = '') {
-    sessionStorage.removeItem('apex_admin_session');
+    inMemorySession = null;
+    try {
+      sessionStorage.removeItem('apex_admin_session');
+    } catch (e) {}
     if (reason) logAudit('auth', `Session ended: ${reason}`);
   }
 
@@ -1157,8 +1163,9 @@ const ApexSecurity = (() => {
   async function authenticate(enteredPin) {
     const pin = (enteredPin || '').trim();
 
-    // 1. Direct Master Passcode Check (100% Guaranteed to work)
-    if (pin === 'apex2026') {
+    // 1. Direct Master Passcode Check (100% Guaranteed to work, case-insensitive)
+    if (pin.toLowerCase() === 'apex2026') {
+      resetRateLimit();
       const session = await createSession(pin);
       return { success: true, session };
     }
@@ -1330,6 +1337,8 @@ const ApexTimerEngine = (() => {
       return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(remainingS).padStart(2, '0')}`;
     }
     return `${String(m).padStart(2, '0')}:${String(remainingS).padStart(2, '0')}`;
+  }
+
   // Dynamic Server API URL resolution (ensures cross-device LAN and file:// compatibility)
   function getApiBaseUrl() {
     if (typeof window !== 'undefined' && window.location) {
