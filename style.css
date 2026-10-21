@@ -1962,13 +1962,27 @@ img {
 .portal-logos {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.6rem;
 }
 
 .portal-logo-img {
-  height: 42px;
-  width: auto;
-  object-fit: contain;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+  background: transparent;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.portal-logo-img:hover {
+  transform: scale(1.06);
+  box-shadow: 0 0 18px rgba(99, 102, 241, 0.7);
 }
 
 .portal-brand-text {
@@ -3520,7 +3534,8 @@ img {
   }
 
   .portal-logo-img {
-    height: 36px;
+    height: 38px;
+    width: 38px;
   }
 
   .portal-brand-title {

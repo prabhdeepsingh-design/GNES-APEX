@@ -512,7 +512,7 @@ const server = http.createServer(async (req, res) => {
       'Content-Type': contentType,
       'Content-Length': cached.size,
       'ETag': cached.etag,
-      'Cache-Control': ext === '.html' ? 'no-cache, must-revalidate' : 'public, max-age=3600'
+      'Cache-Control': 'no-cache, must-revalidate'
     });
     res.end(cached.buffer);
     return;
@@ -529,7 +529,7 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(200, {
       'Content-Type': contentType,
       'Content-Length': stats.size,
-      'Cache-Control': ext === '.html' ? 'no-cache, must-revalidate' : 'public, max-age=3600'
+      'Cache-Control': 'no-cache, must-revalidate'
     });
 
     const readStream = fs.createReadStream(filePath);
