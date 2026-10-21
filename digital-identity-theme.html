@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Digital Identity — Theme &amp; Countdown Timer | GNE'S APEX 2026</title>
+  <title>Digital Identity — Theme &amp; Guidelines | GNE'S APEX 2026</title>
   
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -52,7 +52,7 @@
       <div class="step-divider filled"></div>
       <div class="step-item active">
         <div class="step-circle">2</div>
-        <span class="step-label">Theme &amp; Timer</span>
+        <span class="step-label">Theme &amp; Details</span>
       </div>
       <div class="step-divider"></div>
       <a href="digital-identity-upload.html" class="step-item">
@@ -65,7 +65,7 @@
   <!-- ═══ HERO SECTION ═══ -->
   <header class="curious-hero">
     <h1 class="curious-title">Digital Identity</h1>
-    <p class="curious-subtitle">Competition Workspace &mdash; View the assigned theme, start your 60-minute countdown, and proceed to upload when ready.</p>
+    <p class="curious-subtitle">Competition Workspace &mdash; View the assigned theme, review guidelines, and proceed to upload when ready.</p>
   </header>
 
   <!-- ═══ MAIN CONTENT ═══ -->
@@ -103,22 +103,6 @@
         <p class="announcement-text"></p>
       </div>
     </div>
-
-    <!-- ═══ 2. OFFICIAL COUNTDOWN TIMER WIDGET (ADMIN CONTROLLED) ═══ -->
-    <section class="timer-card">
-      <span class="timer-status-badge" id="timerStatusBadge">⏳ Standby &mdash; Controlled by Event Head</span>
-      <h3 class="timer-card-title">Official Competition Countdown</h3>
-      
-      <div class="timer-display" id="timerDisplay">60:00</div>
-
-      <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.28); border-radius: var(--radius-full); padding: 0.35rem 0.95rem; font-size: 0.76rem; font-weight: 700; color: #c7d2fe; margin-top: 0.4rem;">
-        🔒 Controlled exclusively by Event Heads
-      </div>
-
-      <p class="timer-note">
-        *This countdown clock is synchronized in real-time by the Event Head Console. Time begins when the event head officially initiates the round.
-      </p>
-    </section>
 
     <!-- ═══ RULES RECAP CARD ═══ -->
     <section class="guidelines-card" style="margin-bottom: 24px;">
@@ -170,13 +154,11 @@
     </div>
   </footer>
 
-  <!-- Scripts & Centralized Synced Timer Engine -->
+  <!-- Scripts & Live Announcement Engine -->
   <script src="script.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       ApexTimerEngine.bindParticipantUI('digital_identity', {
-        displayId: 'timerDisplay',
-        statusBadgeId: 'timerStatusBadge',
         announcementId: 'participantAnnouncement'
       });
     });

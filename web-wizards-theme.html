@@ -65,7 +65,7 @@
   <!-- ═══ HERO SECTION ═══ -->
   <header class="curious-hero">
     <h1 class="curious-title">Web Wizards</h1>
-    <p class="curious-subtitle">Competition Workspace &mdash; Download your event assets, review the spot theme, start your 90-minute countdown, and proceed to upload when complete.</p>
+    <p class="curious-subtitle">Competition Workspace &mdash; Download your event assets, review the spot theme, and proceed to upload when complete.</p>
   </header>
 
   <!-- ═══ MAIN CONTENT ═══ -->
@@ -131,23 +131,7 @@
       </div>
     </div>
 
-    <!-- ═══ 3. OFFICIAL COUNTDOWN TIMER WIDGET (ADMIN CONTROLLED) ═══ -->
-    <section class="timer-card">
-      <span class="timer-status-badge" id="timerStatusBadge">⏳ Standby &mdash; Controlled by Event Head</span>
-      <h3 class="timer-card-title">Official Competition Countdown</h3>
-      
-      <div class="timer-display" id="timerDisplay">90:00</div>
-
-      <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.28); border-radius: var(--radius-full); padding: 0.35rem 0.95rem; font-size: 0.76rem; font-weight: 700; color: #c7d2fe; margin-top: 0.4rem;">
-        🔒 Controlled exclusively by Event Heads
-      </div>
-
-      <p class="timer-note">
-        *This countdown clock is synchronized in real-time by the Event Head Console. Time begins when the event head officially initiates the round.
-      </p>
-    </section>
-
-    <!-- ═══ 4. RULES RECAP CARD ═══ -->
+    <!-- ═══ 3. RULES RECAP CARD ═══ -->
     <section class="guidelines-card" style="margin-bottom: 24px;">
       <div class="guidelines-header">
         <div>
@@ -176,7 +160,7 @@
       </div>
     </section>
 
-    <!-- ═══ 5. ACTION BAR (PROCEED TO SUBMISSION) ═══ -->
+    <!-- ═══ 4. ACTION BAR (PROCEED TO SUBMISSION) ═══ -->
     <div class="action-bar" style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;">
       <a href="web-wizards.html" class="btn btn-secondary">
         &larr; Back to Rules
@@ -200,13 +184,11 @@
     </div>
   </footer>
 
-  <!-- Scripts & Centralized Synced Timer Engine -->
+  <!-- Scripts & Live Announcement Engine -->
   <script src="script.js"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       ApexTimerEngine.bindParticipantUI('web_wizards', {
-        displayId: 'timerDisplay',
-        statusBadgeId: 'timerStatusBadge',
         announcementId: 'participantAnnouncement'
       });
     });
