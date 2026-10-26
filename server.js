@@ -19,7 +19,12 @@ const PORT = process.env.PORT || 3000;
 const HOST = '0.0.0.0';
 const ROOT_DIR = __dirname;
 const STATE_FILE = path.join(ROOT_DIR, 'timer_state.json');
+const SUBMISSIONS_DIR = path.join(ROOT_DIR, 'submissions');
 const ADMIN_KEY = 'APEX_2026_HEAD_KEY_98f12c8b74';
+
+if (!fs.existsSync(SUBMISSIONS_DIR)) {
+  try { fs.mkdirSync(SUBMISSIONS_DIR, { recursive: true }); } catch (e) {}
+}
 
 // MIME Types
 const MIME_TYPES = {
@@ -191,15 +196,15 @@ setInterval(() => {
   }
 }, 15000);
 
-// Helper to parse POST body JSON
-function parseRequestBody(req) {
+// Helper to parse POST body JSON (configurable max size)
+function parseRequestBody(req, maxBytes = 10 * 1024 * 1024) {
   return new Promise((resolve, reject) => {
     let body = '';
     req.on('data', chunk => {
       body += chunk;
-      if (body.length > 10 * 1024 * 1024) { // 10MB limit
+      if (body.length > maxBytes) {
         req.destroy();
-        reject(new Error('Payload too large'));
+        reject(new Error('Payload too large (exceeds ' + Math.round(maxBytes / (1024 * 1024)) + 'MB)'));
       }
     });
     req.on('end', () => {
@@ -211,6 +216,66 @@ function parseRequestBody(req) {
       }
     });
     req.on('error', reject);
+  });
+}
+
+// Background relay to Google Apps Script / Drive (Non-blocking: student receives instant success)
+function relayToGoogleDrive(gasUrl, payload) {
+  return new Promise((resolve) => {
+    try {
+      const https = require('https');
+      const data = JSON.stringify(payload);
+      const req = https.request(gasUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(data)
+        },
+        timeout: 60000
+      }, (res) => {
+        const redirectLocation = res.headers.location;
+        res.resume(); // consume response body
+        if (res.statusCode === 302 && redirectLocation) {
+          https.get(redirectLocation, (redRes) => {
+            let body = '';
+            redRes.on('data', c => body += c);
+            redRes.on('end', () => {
+              try {
+                const parsed = JSON.parse(body);
+                if (parsed.status === 'success') {
+                  console.log(`[Drive Sync ✓ SUCCESS] File confirmed in Google Drive: "${parsed.fileName}" (File ID: ${parsed.fileId})`);
+                  console.log(`[Drive Sync URL] ${parsed.fileUrl}`);
+                } else {
+                  console.warn(`[Drive Sync Notice] Google Apps Script returned: ${parsed.message}`);
+                }
+              } catch (e) {
+                console.log(`[Drive Sync Response] ${body.substring(0, 200)}`);
+              }
+              resolve();
+            });
+          }).on('error', (e) => {
+            console.warn(`[Drive Sync Redirect Error] ${e.message}`);
+            resolve();
+          });
+        } else {
+          console.log(`[Drive Sync HTTP ${res.statusCode}] for ${payload.fileName}`);
+          resolve();
+        }
+      });
+      req.on('error', (e) => {
+        console.warn(`[Drive Sync Notice] Offline/Network: ${e.message}`);
+        resolve();
+      });
+      req.on('timeout', () => {
+        req.destroy();
+        console.warn(`[Drive Sync Timeout] Google Drive sync timed out after 60s`);
+        resolve();
+      });
+      req.write(data);
+      req.end();
+    } catch (e) {
+      resolve();
+    }
   });
 }
 
@@ -479,6 +544,117 @@ const server = http.createServer(async (req, res) => {
       res.end(JSON.stringify({ status: 'error', message: err.message }));
       return;
     }
+  }
+
+  // 6. API: POST File Submission (/api/upload) - High-Speed Direct LAN & Local Vault Storage
+  if (pathname === '/api/upload' && req.method === 'POST') {
+    try {
+      const payload = await parseRequestBody(req, 150 * 1024 * 1024); // 150MB buffer limit
+      const eventType = payload.event || 'Web Wizards';
+      const rawCode = (payload.schoolCode || 'SCH').trim();
+      const schoolCode = rawCode.toUpperCase().replace(/[^A-Z0-9_-]/g, '') || 'SCH';
+      const rawFileName = payload.fileName || (eventType === 'Web Wizards' ? 'project.zip' : 'logo.png');
+      const safeOrigName = path.basename(rawFileName);
+      const safeFileName = safeOrigName.toUpperCase().startsWith(schoolCode + '_') ? safeOrigName : `${schoolCode}_${safeOrigName}`;
+      
+      let base64String = payload.fileBase64 || payload.data || '';
+      if (base64String.indexOf(',') > -1) {
+        base64String = base64String.split(',')[1];
+      }
+
+      if (!base64String) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'error', message: 'No file data received' }));
+        return;
+      }
+
+      // Target Event Folder
+      const subDir = path.join(SUBMISSIONS_DIR, eventType);
+      fs.mkdirSync(subDir, { recursive: true });
+
+      // Save file directly onto server hard drive
+      const destPath = path.join(subDir, safeFileName);
+      const fileBuffer = Buffer.from(base64String, 'base64');
+      fs.writeFileSync(destPath, fileBuffer);
+
+      // Submission Token & Record
+      const token = payload.token || `APEX26-${eventType === 'Web Wizards' ? 'WW' : 'DI'}-${schoolCode}-${Math.floor(1000 + Math.random() * 9000)}`;
+      const submissionRecord = {
+        token,
+        event: eventType,
+        schoolCode,
+        fileName: safeFileName,
+        fileSizeBytes: fileBuffer.length,
+        savedPath: destPath,
+        timestamp: new Date().toISOString(),
+        formattedTime: new Date().toLocaleString()
+      };
+
+      // Persist in JSON audit log
+      const logFile = path.join(SUBMISSIONS_DIR, 'submissions_log.json');
+      let currentLogs = [];
+      try {
+        if (fs.existsSync(logFile)) {
+          currentLogs = JSON.parse(fs.readFileSync(logFile, 'utf8'));
+        }
+      } catch (e) {}
+      currentLogs.push(submissionRecord);
+      fs.writeFileSync(logFile, JSON.stringify(currentLogs, null, 2), 'utf8');
+
+      // Append to CSV log for instant opening in MS Excel / LibreOffice
+      const csvFile = path.join(SUBMISSIONS_DIR, 'submissions_log.csv');
+      if (!fs.existsSync(csvFile)) {
+        fs.writeFileSync(csvFile, 'Timestamp,Token,Event,School Code,File Name,Size (Bytes),Path\n', 'utf8');
+      }
+      fs.appendFileSync(csvFile, `"${submissionRecord.formattedTime}","${token}","${eventType}","${schoolCode}","${safeFileName}",${fileBuffer.length},"${destPath.replace(/\\/g, '\\\\')}"\n`, 'utf8');
+
+      console.log(`[Submission] Secured ${eventType} from ${schoolCode}: ${safeFileName} (${fileBuffer.length} bytes)`);
+
+      // Asynchronous background relay to Google Drive (Non-blocking)
+      const gasEndpoint = 'https://script.google.com/macros/s/AKfycbznYufWQribMU1D0yD_RMu1aP9B5JSp4SG2qIUeBlgSt3fmmoHbyQ1trG2sBr8seBSN/exec';
+      if (gasEndpoint) {
+        relayToGoogleDrive(gasEndpoint, {
+          event: eventType,
+          token,
+          schoolCode,
+          fileName: safeOrigName,
+          mimeType: payload.mimeType || 'application/octet-stream',
+          fileBase64: base64String
+        }).catch(err => console.warn('[Background Drive Sync Warning]', err.message));
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        status: 'success',
+        message: 'Project uploaded and secured on Event Server!',
+        token,
+        fileName: safeFileName,
+        fileSize: fileBuffer.length
+      }));
+      return;
+    } catch (err) {
+      console.error('[Upload Error]', err);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'error', message: err.message }));
+      return;
+    }
+  }
+
+  // 7. API: GET Submissions List (/api/submissions) - Admin Evaluation Endpoint
+  if (pathname === '/api/submissions' && req.method === 'GET') {
+    const logFile = path.join(SUBMISSIONS_DIR, 'submissions_log.json');
+    let logs = [];
+    try {
+      if (fs.existsSync(logFile)) {
+        logs = JSON.parse(fs.readFileSync(logFile, 'utf8'));
+      }
+    } catch (e) {}
+    res.writeHead(200, {
+      'Content-Type': 'application/json; charset=UTF-8',
+      'Cache-Control': 'no-cache'
+    });
+    res.end(JSON.stringify({ status: 'success', submissions: logs }));
+    return;
   }
 
   // 5. Static File Serving with In-Memory Streaming & Caching

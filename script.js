@@ -11,7 +11,7 @@ const APEX_CONFIG = {
   },
   // If a Google Apps Script web app URL is provided, background POSTs are sent directly here!
   // Set your URL here or enter it via the Admin Setup button in the footer.
-  gasEndpoint: 'https://script.google.com/macros/s/AKfycbznYufWQribMU1D0yD_RMu1aP9B5JSp4SG2qIUeBlgSt3fmmoHbyQ1trG2sBr8seBSN/exec'
+  gasEndpoint: 'https://script.google.com/macros/s/AKfycbzCxgBdPggSF9xpNL1V2DWiTikOwBPKzUnB3eLENydKunLTpVIooR8fBr5xklC9xLrFaA/exec'
 };
 
 // Retrieve active endpoint (code or stored)
@@ -841,47 +841,111 @@ async function handleCuriousUpload() {
   if (uploadBtn) uploadBtn.disabled = true;
   if (progressWrap) progressWrap.style.display = 'block';
 
-  let p = 0;
+  let p = 5;
+  if (progressFill) progressFill.style.width = '5%';
+  if (progressText) progressText.textContent = 'Reading archive file...';
+
   const progressTimer = setInterval(() => {
-    if (p >= 88) {
-      clearInterval(progressTimer);
-      return;
-    }
-    p += Math.random() * 12;
-    if (progressFill) progressFill.style.width = Math.min(p, 88) + '%';
-    if (progressText) progressText.textContent = `Uploading ${Math.round(Math.min(p, 88))}%.`;
-  }, 220);
+    if (p >= 85) return;
+    p += Math.random() * 15;
+    if (progressFill) progressFill.style.width = Math.min(p, 85) + '%';
+    if (progressText) progressText.textContent = `Uploading ${Math.round(Math.min(p, 85))}%.`;
+  }, 120);
 
   try {
     const base64Data = await readCuriousFileAsBase64(file);
-    const gasEndpoint = getActiveGasEndpoint();
+    const prefix = eventType === 'Web Wizards' ? 'WW' : 'DI';
+    const randomId = Math.floor(1000 + Math.random() * 9000);
+    const token = `APEX26-${prefix}-${schoolCode.toUpperCase()}-${randomId}`;
 
     const payload = {
       event: eventType,
       fileName: finalName,
-      mimeType: file.type || 'application/octet-stream',
-      data: base64Data,
+      mimeType: file.type || (eventType === 'Web Wizards' ? 'application/zip' : 'image/png'),
       fileBase64: base64Data,
       schoolCode: schoolCode,
-      token: `APEX26-${schoolCode}-${Math.floor(1000 + Math.random() * 9000)}`
+      token: token
     };
 
-    if (gasEndpoint) {
-      await fetch(gasEndpoint, {
+    let serverSaved = false;
+
+    // 1. Primary High-Speed Path: Save directly to Central Event Server via LAN (sub-second)
+    try {
+      const serverBase = (typeof getApexServerBaseUrl === 'function') ? getApexServerBaseUrl() : '';
+      const uploadUrl = `${serverBase}/api/upload`;
+      if (progressText) progressText.textContent = 'Saving to Central Event Server...';
+      
+      const serverRes = await fetch(uploadUrl, {
         method: 'POST',
-        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+
+      if (serverRes.ok) {
+        const resJson = await serverRes.json();
+        if (resJson && resJson.status === 'success') {
+          serverSaved = true;
+        }
+      } else {
+        const errJson = await serverRes.json().catch(() => ({}));
+        throw new Error(errJson.message || `Server rejected file upload (HTTP ${serverRes.status})`);
+      }
+    } catch (serverErr) {
+      if (serverErr.message && serverErr.message.includes('Server rejected')) {
+        throw serverErr; // Throw fatal server validation or payload errors
+      }
+      console.warn('Central Event Server upload fallback:', serverErr);
+    }
+
+    // 2. Secondary Path: If local event server is not present, dispatch to Google Drive bridge
+    if (!serverSaved) {
+      const gasEndpoint = getActiveGasEndpoint();
+      if (gasEndpoint) {
+        if (progressText) progressText.textContent = 'Transmitting to Cloud Drive...';
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 35000);
+        try {
+          await fetch(gasEndpoint, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: JSON.stringify(payload),
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          serverSaved = true;
+        } catch (gasErr) {
+          clearTimeout(timeoutId);
+          throw new Error('Google Drive upload timed out or network failed. Please verify connection.');
+        }
+      } else {
+        throw new Error('No local server or Google Drive endpoint available.');
+      }
     }
 
     clearInterval(progressTimer);
     if (progressFill) progressFill.style.width = '100%';
     if (progressText) progressText.textContent = 'Upload Completed!';
 
-    showCuriousStatus('success', '✓ File successfully transmitted to the evaluation depository!');
+    showCuriousStatus('success', '✓ File successfully secured and registered in the evaluation depository!');
+
+    // Persist submission record locally on workstation
+    try {
+      const past = JSON.parse(localStorage.getItem('apex_submissions') || '[]');
+      past.push({
+        token: payload.token,
+        event: eventType,
+        schoolCode: schoolCode,
+        fileName: finalName,
+        fileSize: formatCuriousBytes(file.size),
+        timestamp: new Date().toLocaleString(),
+        status: 'Submitted & Secured'
+      });
+      localStorage.setItem('apex_submissions', JSON.stringify(past));
+    } catch (e) {}
 
     if (uploadedFileName) uploadedFileName.textContent = `"${finalName}"`;
     if (confirmationNote) {
+      confirmationNote.innerHTML = `🎉 <strong id="uploadedFileName">"${finalName}"</strong> has been successfully uploaded with your assigned school code!<br><span style="display:inline-block; margin-top:0.4rem; font-size:0.85rem; color:var(--accent-gold-light); font-family:var(--font-mono);">Verification Token: <strong>${payload.token}</strong> &bull; Save for jury evaluation</span>`;
       confirmationNote.style.display = 'block';
       confirmationNote.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
@@ -891,7 +955,8 @@ async function handleCuriousUpload() {
 
   } catch (err) {
     console.error(err);
-    showCuriousStatus('error', '✕ Transmission failed. Please verify your connection and try again.');
+    clearInterval(progressTimer);
+    showCuriousStatus('error', '✕ Transmission failed. Please verify your file and try again.');
   } finally {
     if (uploadBtn) uploadBtn.disabled = false;
     setTimeout(() => {
@@ -900,6 +965,19 @@ async function handleCuriousUpload() {
     }, 2500);
   }
 }
+
+function getApexServerBaseUrl() {
+  if (typeof window !== 'undefined' && window.location) {
+    if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+      if (window.location.port === '3000' || (!window.location.port && window.location.hostname !== 'localhost')) {
+        return '';
+      }
+      return `${window.location.protocol}//${window.location.hostname}:3000`;
+    }
+  }
+  return 'http://localhost:3000';
+}
+window.getApexServerBaseUrl = getApexServerBaseUrl;
 
 function showCuriousStatus(type, msg) {
   const statusBox = document.getElementById('statusBox');

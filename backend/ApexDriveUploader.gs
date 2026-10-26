@@ -75,10 +75,10 @@ function doPost(e) {
       base64String = base64String.split(',')[1];
     }
     
-    // Standardized file name
+    // Standardized file name (safeguard against duplicate schoolCode prefix)
     const schoolCode = (data.schoolCode || 'SCH').toUpperCase();
     const origName = data.fileName || (eventType === 'Web Wizards' ? 'project.zip' : 'logo.png');
-    const safeFileName = schoolCode + '_' + origName;
+    const safeFileName = origName.toUpperCase().startsWith(schoolCode + '_') ? origName : (schoolCode + '_' + origName);
     
     // Decode and create file inside Google Drive Folder
     const decodedBytes = Utilities.base64Decode(base64String);
